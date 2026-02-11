@@ -308,6 +308,32 @@ async function runMigrations() {
       )
     `);
 
+    // ALTER existing tables to add new columns (idempotent)
+    console.log('📋 Altering existing tables...');
+    const alterStatements = [
+      // agents new columns
+      `ALTER TABLE agents ADD COLUMN IF NOT EXISTS daily_budget_usd REAL`,
+      `ALTER TABLE agents ADD COLUMN IF NOT EXISTS total_spent_usd REAL DEFAULT 0`,
+      `ALTER TABLE agents ADD COLUMN IF NOT EXISTS autonomy_level autonomy_level NOT NULL DEFAULT 'tool'`,
+      `ALTER TABLE agents ADD COLUMN IF NOT EXISTS max_concurrent_tasks INTEGER NOT NULL DEFAULT 1`,
+      `ALTER TABLE agents ADD COLUMN IF NOT EXISTS sla_rule_id UUID`,
+      // tasks new columns
+      `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS acceptance_criteria TEXT`,
+      `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS review_required BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS auto_assigned BOOLEAN NOT NULL DEFAULT FALSE`,
+      `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS retry_count INTEGER NOT NULL DEFAULT 0`,
+      `ALTER TABLE tasks ADD COLUMN IF NOT EXISTS max_retries INTEGER NOT NULL DEFAULT 3`,
+      // projects new columns
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS budget_usd REAL`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS spent_usd REAL DEFAULT 0`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS deadline TIMESTAMP`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS health_score REAL`,
+      `ALTER TABLE projects ADD COLUMN IF NOT EXISTS risk_level risk_level NOT NULL DEFAULT 'low'`,
+    ];
+    for (const stmt of alterStatements) {
+      await db.execute(drizzleSql.raw(stmt));
+    }
+
     // Add foreign key constraints for new columns
     console.log('📋 Adding foreign key constraints...');
     

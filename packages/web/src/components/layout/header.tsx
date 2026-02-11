@@ -1,6 +1,7 @@
 "use client"
 
-import { Bell, Moon, Search, Sun } from "lucide-react"
+import Link from "next/link"
+import { Bell, Moon, Search, Sun, Wifi, WifiOff } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,15 +14,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useUser } from "@/lib/auth"
+import { useEvents } from "@/hooks/use-events"
 
-interface HeaderProps {
-  title?: string
-}
-
-export function Header({ title = "Dashboard" }: HeaderProps) {
+export function Header() {
   const { setTheme, theme } = useTheme()
   const { user, logout } = useUser()
+  const { connected } = useEvents()
   
   const getInitials = (name?: string) => {
     if (!name) return "U"
@@ -37,9 +37,7 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-14 items-center gap-4 px-4 lg:px-6">
         {/* Page Title */}
-        <div className="flex-1">
-          <h1 className="text-lg font-semibold">{title}</h1>
-        </div>
+        <div className="flex-1" />
 
         {/* Search */}
         <div className="relative w-full max-w-sm">
@@ -53,6 +51,30 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
+          {/* Live Connection Status */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-1.5 px-2">
+                  {connected ? (
+                    <>
+                      <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs text-muted-foreground hidden sm:inline">Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-2 w-2 rounded-full bg-gray-400" />
+                      <span className="text-xs text-muted-foreground hidden sm:inline">Offline</span>
+                    </>
+                  )}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                {connected ? 'Real-time updates active' : 'Connecting to event stream...'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Theme Toggle */}
           <Button
             variant="ghost"
@@ -67,12 +89,6 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
           {/* Notifications */}
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-4 w-4" />
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center"
-            >
-              3
-            </Badge>
             <span className="sr-only">Notifications</span>
           </Button>
 
@@ -96,12 +112,9 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                Settings
-              </DropdownMenuItem>
+              <Link href="/settings">
+                <DropdownMenuItem>Settings</DropdownMenuItem>
+              </Link>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout}>
                 Log out

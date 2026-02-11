@@ -30,10 +30,20 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   }
   
   const json = await res.json();
-  // API wraps responses in {data: ...} or {user: ...} — unwrap
+  // API wraps responses in envelopes — unwrap
   if (json && typeof json === 'object' && !Array.isArray(json)) {
     if ('data' in json) return json.data;
     if ('user' in json) return json.user;
+    // List envelopes: {agents: [...], pagination}, {projects: [...], pagination}, etc.
+    const listKeys = ['agents', 'projects', 'tasks', 'decisions', 'users', 'entries', 'rules', 'keys', 'workflows'];
+    for (const key of listKeys) {
+      if (key in json && Array.isArray(json[key])) return json[key] as T;
+    }
+    // Single-resource envelopes: {agent: {...}}, {task: {...}}, etc.
+    const resourceKeys = ['agent', 'task', 'project', 'decision', 'workflow', 'rule', 'memory', 'key'];
+    for (const key of resourceKeys) {
+      if (key in json && typeof json[key] === 'object' && json[key] !== null) return json[key] as T;
+    }
   }
   return json;
 }

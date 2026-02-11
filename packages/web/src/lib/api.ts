@@ -92,6 +92,7 @@ export const api = {
     get: (id: string) => apiFetch<any>(`/v2/tasks/${id}`),
     create: (data: any) => apiFetch<any>('/v2/tasks', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: any) => apiFetch<any>(`/v2/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    updateStatus: (id: string, status: string) => apiFetch<any>(`/v2/tasks/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
     delete: (id: string) => apiFetch<void>(`/v2/tasks/${id}`, { method: 'DELETE' }),
     graph: () => apiFetch<any>('/v2/tasks/graph'),
   },

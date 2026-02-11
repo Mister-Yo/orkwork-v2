@@ -213,12 +213,46 @@ export default function AgentDetailPage() {
           <CardContent>
             {health ? (
               <div className="space-y-2">
-                {Object.entries(health).map(([key, value]) => (
+                {health.status && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Status</span>
+                    <span className={`font-medium ${health.status === 'healthy' ? 'text-green-600' : health.status === 'degraded' ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {String(health.status).charAt(0).toUpperCase() + String(health.status).slice(1)}
+                    </span>
+                  </div>
+                )}
+                {health.uptime_hours != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Uptime</span>
+                    <span className="font-medium">{Number(health.uptime_hours).toFixed(1)}h</span>
+                  </div>
+                )}
+                {health.error_rate != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Error Rate</span>
+                    <span className="font-medium">{(Number(health.error_rate) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {health.avg_response_time != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Avg Response</span>
+                    <span className="font-medium">{Number(health.avg_response_time).toFixed(0)}ms</span>
+                  </div>
+                )}
+                {Array.isArray(health.current_issues) && health.current_issues.length > 0 && (
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Issues</span>
+                    <ul className="mt-1 space-y-1">
+                      {health.current_issues.map((issue: string, i: number) => (
+                        <li key={i} className="text-yellow-600 text-xs">⚠ {issue}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {(!health.status && !health.uptime_hours) && Object.entries(health).filter(([k]) => k !== 'agent_id').map(([key, value]) => (
                   <div key={key} className="flex justify-between text-sm">
                     <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span className="font-medium">
-                      {typeof value === 'object' ? JSON.stringify(value) : typeof value === 'number' ? (value % 1 === 0 ? value : (value as number).toFixed(2)) : String(value)}
-                    </span>
+                    <span className="font-medium">{String(value)}</span>
                   </div>
                 ))}
               </div>

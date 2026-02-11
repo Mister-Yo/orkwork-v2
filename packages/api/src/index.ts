@@ -154,6 +154,7 @@ app.route('/api/auth', authRoutes);
 // API v2 routes
 app.route('/api/v2/agents', agentRoutes);
 app.route('/api/v2/agents', apiKeyRoutes); // Mount API key routes under agents path
+app.route("/api/v2/api-keys", apiKeyRoutes); // Also mount at /api-keys for frontend compatibility
 app.route('/api/v2/agents', memoryRoutes); // Mount memory routes under agents path
 app.route('/api/v2/agents', capabilityRoutes); // Mount capability routes under agents path  
 app.route('/api/v2/agents', toolRoutes); // Mount tool routes under agents path

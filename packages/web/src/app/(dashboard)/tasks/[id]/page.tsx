@@ -96,7 +96,7 @@ export default function TaskDetailPage() {
 
   async function changeStatus(newStatus: string) {
     try {
-      await api.tasks.update(id, { status: newStatus })
+      await api.tasks.updateStatus(id, newStatus)
       mutate(`/v2/tasks/${id}`)
     } catch (e) {
       console.error('Failed to update status:', e)

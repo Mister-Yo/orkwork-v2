@@ -85,5 +85,5 @@ export const requireScope = (scope: string) => {
 
 // Validate that scopes array contains only valid scopes
 export function validateScopes(scopes: string[]): boolean {
-  return scopes.every(scope => AVAILABLE_SCOPES.includes(scope as Scope));
+  return scopes.every(scope => scope === "*" || AVAILABLE_SCOPES.includes(scope as Scope));
 }

@@ -24,12 +24,12 @@ export default function LoginPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Link href="/api/auth/github">
+          <a href="/api/auth/github">
             <Button className="w-full" size="lg">
               <Github className="mr-2 h-5 w-5" />
               Sign in with GitHub
             </Button>
-          </Link>
+          </a>
           <p className="mt-4 text-center text-sm text-muted-foreground">
             By signing in, you agree to our{" "}
             <Link href="/terms" className="underline underline-offset-4 hover:text-primary">

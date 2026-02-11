@@ -10,7 +10,13 @@ import { authMiddleware } from './auth/middleware';
 import authRoutes from './auth/github';
 import agentRoutes from './routes/agents';
 import userRoutes from './routes/users';
+import projectRoutes from './routes/projects';
+import taskRoutes from './routes/tasks';
+import auditRoutes from './routes/audit';
 import healthRoutes from './routes/health';
+
+// Import middleware
+import { auditMiddleware } from './middleware/audit';
 
 // Create main Hono app
 const app = new Hono();
@@ -27,6 +33,9 @@ if (isDevelopment) {
 
 // Auth middleware for all routes (but doesn't require authentication)
 app.use('*', authMiddleware);
+
+// Audit middleware for API routes
+app.use('/api/v2/*', auditMiddleware);
 
 // Global error handler
 app.onError((err, c) => {
@@ -72,6 +81,9 @@ app.get('/api', (c) => {
       v2: {
         agents: '/api/v2/agents',
         users: '/api/v2/users',
+        projects: '/api/v2/projects',
+        tasks: '/api/v2/tasks',
+        audit: '/api/v2/audit',
       },
     },
   });
@@ -83,6 +95,9 @@ app.route('/api/auth', authRoutes);
 // API v2 routes
 app.route('/api/v2/agents', agentRoutes);
 app.route('/api/v2/users', userRoutes);
+app.route('/api/v2/projects', projectRoutes);
+app.route('/api/v2/tasks', taskRoutes);
+app.route('/api/v2/audit', auditRoutes);
 
 // Root endpoint
 app.get('/', (c) => {

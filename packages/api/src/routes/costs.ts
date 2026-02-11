@@ -9,7 +9,8 @@ import {
   projects, 
   type NewCostEntry 
 } from '../db';
-import { requireAuth, requireScope } from '../auth/middleware';
+import { requireAuth } from '../auth/middleware';
+import { requireScope } from '../auth/scopes';
 import { updateAgentSpent } from '../engine/costs';
 
 const app = new Hono();

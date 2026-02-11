@@ -17,6 +17,9 @@ import auditRoutes from './routes/audit';
 import healthRoutes from './routes/health';
 import slaRoutes from './routes/sla';
 import workflowRoutes from './routes/workflows';
+import costRoutes from './routes/costs';
+import decisionRoutes from './routes/decisions';
+import intelligenceRoutes from './routes/intelligence';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
@@ -84,6 +87,7 @@ app.get('/api', (c) => {
       v2: {
         agents: '/api/v2/agents',
         'agent-keys': '/api/v2/agents/:agentId/keys',
+        'agent-performance': '/api/v2/agents/:id/performance',
         scopes: '/api/v2/agents/scopes',
         users: '/api/v2/users',
         projects: '/api/v2/projects',
@@ -92,6 +96,14 @@ app.get('/api', (c) => {
         audit: '/api/v2/audit',
         sla: '/api/v2/sla',
         workflows: '/api/v2/workflows',
+        costs: '/api/v2/costs',
+        decisions: '/api/v2/decisions',
+        intelligence: {
+          brief: '/api/v2/intelligence/brief',
+          anomalies: '/api/v2/intelligence/anomalies',
+          leaderboard: '/api/v2/intelligence/leaderboard',
+          forecast: '/api/v2/intelligence/forecast',
+        },
       },
     },
   });
@@ -109,6 +121,9 @@ app.route('/api/v2/tasks', taskRoutes);
 app.route('/api/v2/audit', auditRoutes);
 app.route('/api/v2/sla', slaRoutes);
 app.route('/api/v2/workflows', workflowRoutes);
+app.route('/api/v2/costs', costRoutes);
+app.route('/api/v2/decisions', decisionRoutes);
+app.route('/api/v2/intelligence', intelligenceRoutes);
 
 // Root endpoint
 app.get('/', (c) => {

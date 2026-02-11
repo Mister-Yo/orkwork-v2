@@ -3,6 +3,7 @@ import { eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, agents, type Agent, type NewAgent } from '../db';
 import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
+import { calculateAgentScore } from '../engine/performance';
 
 const app = new Hono();
 
@@ -207,6 +208,36 @@ app.delete('/:id', requireRole('owner'), async (c) => {
   } catch (error) {
     console.error('Error deleting agent:', error);
     return c.json({ error: 'Failed to delete agent' }, 500);
+  }
+});
+
+// GET /api/v2/agents/:id/performance - Get agent performance score
+app.get('/:id/performance', requireAuth, async (c) => {
+  try {
+    const id = c.req.param('id');
+
+    if (!id) {
+      return c.json({ error: 'Agent ID is required' }, 400);
+    }
+
+    // Check if agent exists
+    const [agent] = await db
+      .select()
+      .from(agents)
+      .where(eq(agents.id, id))
+      .limit(1);
+
+    if (!agent) {
+      return c.json({ error: 'Agent not found' }, 404);
+    }
+
+    // Calculate performance score
+    const performanceData = await calculateAgentScore(id);
+
+    return c.json({ data: performanceData });
+  } catch (error) {
+    console.error('Error fetching agent performance:', error);
+    return c.json({ error: 'Failed to fetch agent performance' }, 500);
   }
 });
 

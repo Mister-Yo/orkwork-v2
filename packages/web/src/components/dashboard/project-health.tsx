@@ -45,8 +45,8 @@ export function ProjectHealth() {
           <div className="space-y-4">
             {projectsList.map((project: any) => {
               const healthScore = project.health_score ?? project.healthScore ?? 0
-              const budgetUsd = project.budget_usd ?? project.budgetUsd ?? 0
-              const spentUsd = project.spent_usd ?? project.spentUsd ?? 0
+              const budgetUsd = (project.budget_usd ?? project.budgetUsd ?? 0) / 100
+              const spentUsd = (project.spent_usd ?? project.spentUsd ?? 0) / 100
               const riskLevel = project.risk_level ?? project.riskLevel ?? 'low'
               const budgetPct = budgetUsd > 0 ? Math.round((spentUsd / budgetUsd) * 100) : 0
 

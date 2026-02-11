@@ -54,8 +54,8 @@ export default function ProjectsPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
           {projectsList.map((project: any) => {
-            const budgetUsd = project.budget_usd ?? project.budgetUsd ?? 0
-            const spentUsd = project.spent_usd ?? project.spentUsd ?? 0
+            const budgetUsd = (project.budget_usd ?? project.budgetUsd ?? 0) / 100
+            const spentUsd = (project.spent_usd ?? project.spentUsd ?? 0) / 100
             const riskLevel = project.risk_level ?? project.riskLevel ?? 'low'
             const healthScore = project.health_score ?? project.healthScore ?? 0
             const deadline = project.deadline ? new Date(project.deadline).toLocaleDateString() : null

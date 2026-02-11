@@ -27,7 +27,7 @@ const statusTransitions: Record<string, string[]> = {
 
 // Validation schemas
 const createTaskSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.string().uuid().optional(),
   assigneeId: z.string().uuid().optional(),
   title: z.string().min(1).max(500),
   description: z.string().optional(),

@@ -68,6 +68,7 @@ export async function generateBrief(): Promise<DailyBrief> {
 
   return {
     date: dateStr,
+    generatedAt: now.toISOString(),
     system_health: systemHealth,
     summary,
     budget,

@@ -142,7 +142,7 @@ function SidebarContent({ className }: SidebarContentProps) {
           <div className="flex-1 space-y-1">
             <p className="text-sm font-medium leading-none">{user?.displayName || user?.name || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user?.email || "user@example.com"}
+              {user?.email || user?.username || "No email"}
             </p>
           </div>
         </div>

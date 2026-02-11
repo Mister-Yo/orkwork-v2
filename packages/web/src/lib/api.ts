@@ -91,6 +91,23 @@ export const api = {
   },
   
   // Health
+  // API Keys
+  apiKeys: {
+    list: (agentId: string) => apiFetch<any[]>(`/v2/api-keys/${agentId}/keys`),
+    create: (agentId: string, data: any) => apiFetch<any>(`/v2/api-keys/${agentId}/keys`, { method: "POST", body: JSON.stringify(data) }),
+    delete: (agentId: string, keyId: string) => apiFetch<void>(`/v2/api-keys/${agentId}/keys/${keyId}`, { method: "DELETE" }),
+    scopes: () => apiFetch<any>("/v2/api-keys/scopes"),
+  },
+
+  // SLA
+  sla: {
+    list: () => apiFetch<any>("/v2/sla"),
+    create: (data: any) => apiFetch<any>("/v2/sla", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: any) => apiFetch<any>(`/v2/sla/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`/v2/sla/${id}`, { method: "DELETE" }),
+    violations: () => apiFetch<any>("/v2/sla/violations"),
+  },
+
   health: () => apiFetch<any>('/health'),
 
   // Audit

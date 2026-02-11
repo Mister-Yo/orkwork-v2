@@ -30,6 +30,7 @@ import deployRoutes from './routes/deploy';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
+import { authRateLimiter, apiRateLimiter, deployRateLimiter } from './middleware/rate-limit';
 
 // Import scheduler
 import { initializeScheduler, scheduler } from './engine/scheduler';
@@ -52,6 +53,11 @@ app.use('*', authMiddleware);
 
 // Audit middleware for API routes
 app.use('/api/v2/*', auditMiddleware);
+
+// Rate limiting
+app.use('/api/auth/*', authRateLimiter);
+app.use('/api/v2/*', apiRateLimiter);
+app.use('/api/v2/deploy/*', deployRateLimiter);
 
 // Global error handler
 app.onError((err, c) => {
@@ -190,6 +196,7 @@ const startServer = () => {
   scheduler.start();
   
   const server = Bun.serve({
+    hostname: "127.0.0.1",
     port: config.PORT,
     fetch: app.fetch,
     error(error) {

@@ -24,6 +24,7 @@ export const chatChannelTypeEnum = pgEnum('chat_channel_type', ['project', 'team
 export const authorTypeEnum = pgEnum('author_type', ['user', 'agent']);
 export const autonomyLevelEnum = pgEnum('autonomy_level', ['tool', 'assistant', 'supervised', 'autonomous', 'strategic']);
 export const riskLevelEnum = pgEnum('risk_level', ['low', 'medium', 'high', 'critical']);
+export const toolTypeEnum = pgEnum('tool_type', ['git', 'shell', 'http', 'db_query', 'file_ops', 'browser', 'custom']);
 
 // Core tables
 export const users = pgTable('users', {
@@ -140,6 +141,22 @@ export const agentCapabilities = pgTable('agent_capabilities', {
 }, (table) => ({
   agentIdIdx: index('agent_capabilities_agent_id_idx').on(table.agentId),
   capabilityIdx: index('agent_capabilities_capability_idx').on(table.capability),
+}));
+
+export const agentTools = pgTable('agent_tools', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: uuid('agent_id').notNull().references(() => agents.id, { onDelete: 'cascade' }),
+  toolName: varchar('tool_name', { length: 100 }).notNull(),
+  toolType: toolTypeEnum('tool_type').notNull(),
+  description: text('description'),
+  config: jsonb('config').$type<Record<string, any>>().default({}),
+  isEnabled: boolean('is_enabled').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  agentIdIdx: index('agent_tools_agent_id_idx').on(table.agentId),
+  toolNameIdx: index('agent_tools_tool_name_idx').on(table.toolName),
+  toolTypeIdx: index('agent_tools_tool_type_idx').on(table.toolType),
+  isEnabledIdx: index('agent_tools_is_enabled_idx').on(table.isEnabled),
 }));
 
 export const costEntries = pgTable('cost_entries', {
@@ -370,6 +387,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 export const agentsRelations = relations(agents, ({ one, many }) => ({
   capabilities: many(agentCapabilities),
+  tools: many(agentTools),
   costEntries: many(costEntries),
   memory: many(agentMemory),
   executions: many(taskExecutions),
@@ -411,6 +429,13 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
 export const agentCapabilitiesRelations = relations(agentCapabilities, ({ one }) => ({
   agent: one(agents, {
     fields: [agentCapabilities.agentId],
+    references: [agents.id],
+  }),
+}));
+
+export const agentToolsRelations = relations(agentTools, ({ one }) => ({
+  agent: one(agents, {
+    fields: [agentTools.agentId],
     references: [agents.id],
   }),
 }));
@@ -540,6 +565,8 @@ export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 export type AgentCapability = typeof agentCapabilities.$inferSelect;
 export type NewAgentCapability = typeof agentCapabilities.$inferInsert;
+export type AgentTool = typeof agentTools.$inferSelect;
+export type NewAgentTool = typeof agentTools.$inferInsert;
 export type CostEntry = typeof costEntries.$inferSelect;
 export type NewCostEntry = typeof costEntries.$inferInsert;
 

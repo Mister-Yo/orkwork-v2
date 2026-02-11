@@ -33,6 +33,7 @@ async function runMigrations() {
       `DO $$ BEGIN CREATE TYPE author_type AS ENUM ('user','agent'); EXCEPTION WHEN duplicate_object THEN null; END $$`,
       `DO $$ BEGIN CREATE TYPE autonomy_level AS ENUM ('tool','assistant','supervised','autonomous','strategic'); EXCEPTION WHEN duplicate_object THEN null; END $$`,
       `DO $$ BEGIN CREATE TYPE risk_level AS ENUM ('low','medium','high','critical'); EXCEPTION WHEN duplicate_object THEN null; END $$`,
+      `DO $$ BEGIN CREATE TYPE tool_type AS ENUM ('git','shell','http','db_query','file_ops','browser','custom'); EXCEPTION WHEN duplicate_object THEN null; END $$`,
     ];
     for (const e of enums) {
       await db.execute(drizzleSql.raw(e));
@@ -136,6 +137,19 @@ async function runMigrations() {
         capability VARCHAR(100) NOT NULL,
         proficiency INTEGER NOT NULL DEFAULT 50,
         enabled BOOLEAN NOT NULL DEFAULT true,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(drizzleSql`
+      CREATE TABLE IF NOT EXISTS agent_tools (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        tool_name VARCHAR(100) NOT NULL,
+        tool_type tool_type NOT NULL,
+        description TEXT,
+        config JSONB DEFAULT '{}',
+        is_enabled BOOLEAN NOT NULL DEFAULT TRUE,
         created_at TIMESTAMP NOT NULL DEFAULT NOW()
       )
     `);
@@ -386,6 +400,10 @@ async function runMigrations() {
       `CREATE INDEX IF NOT EXISTS tasks_priority_idx ON tasks(priority)`,
       `CREATE INDEX IF NOT EXISTS tasks_auto_assigned_idx ON tasks(auto_assigned)`,
       `CREATE INDEX IF NOT EXISTS agent_capabilities_agent_id_idx ON agent_capabilities(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS agent_tools_agent_id_idx ON agent_tools(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS agent_tools_tool_name_idx ON agent_tools(tool_name)`,
+      `CREATE INDEX IF NOT EXISTS agent_tools_tool_type_idx ON agent_tools(tool_type)`,
+      `CREATE INDEX IF NOT EXISTS agent_tools_is_enabled_idx ON agent_tools(is_enabled)`,
       `CREATE INDEX IF NOT EXISTS cost_entries_agent_id_idx ON cost_entries(agent_id)`,
       `CREATE INDEX IF NOT EXISTS cost_entries_created_at_idx ON cost_entries(created_at)`,
       

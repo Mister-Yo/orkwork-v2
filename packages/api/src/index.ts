@@ -20,6 +20,9 @@ import workflowRoutes from './routes/workflows';
 import costRoutes from './routes/costs';
 import decisionRoutes from './routes/decisions';
 import intelligenceRoutes from './routes/intelligence';
+import memoryRoutes from './routes/memory';
+import capabilityRoutes from './routes/capabilities';
+import toolRoutes from './routes/tools';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
@@ -104,6 +107,15 @@ app.get('/api', (c) => {
           leaderboard: '/api/v2/intelligence/leaderboard',
           forecast: '/api/v2/intelligence/forecast',
         },
+        memory: '/api/v2/agents/:agentId/memory',
+        capabilities: '/api/v2/capabilities',
+        'agent-capabilities': '/api/v2/agents/:agentId/capabilities',
+        tools: '/api/v2/tools',
+        'agent-tools': '/api/v2/agents/:agentId/tools',
+        'agent-health': '/api/v2/agents/:id/health',
+        'agent-heartbeat': '/api/v2/agents/:id/heartbeat',
+        'agent-permissions': '/api/v2/agents/:id/permissions',
+        'agent-autonomy': '/api/v2/agents/:id/autonomy',
       },
     },
   });
@@ -115,6 +127,11 @@ app.route('/api/auth', authRoutes);
 // API v2 routes
 app.route('/api/v2/agents', agentRoutes);
 app.route('/api/v2/agents', apiKeyRoutes); // Mount API key routes under agents path
+app.route('/api/v2/agents', memoryRoutes); // Mount memory routes under agents path
+app.route('/api/v2/agents', capabilityRoutes); // Mount capability routes under agents path  
+app.route('/api/v2/agents', toolRoutes); // Mount tool routes under agents path
+app.route('/api/v2/capabilities', capabilityRoutes); // Also mount capabilities at root level
+app.route('/api/v2/tools', toolRoutes); // Also mount tools at root level
 app.route('/api/v2/users', userRoutes);
 app.route('/api/v2/projects', projectRoutes);
 app.route('/api/v2/tasks', taskRoutes);

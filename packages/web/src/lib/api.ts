@@ -138,7 +138,27 @@ export const api = {
     violations: () => apiFetch<any>("/v2/sla/violations"),
   },
 
-  health: () => apiFetch<any>('/health'),
+  health: () => apiFetch<any>("/health"),
+
+  // Chat
+  chat: {
+    channels: () => apiFetch<any[]>("/v2/chat"),
+    createChannel: (data: any) => apiFetch<any>("/v2/chat", { method: "POST", body: JSON.stringify(data) }),
+    messages: (channelId: string, params?: { limit?: number; before?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.limit) q.set("limit", String(params.limit));
+      if (params?.before) q.set("before", params.before);
+      const qs = q.toString();
+      return apiFetch<any[]>(`/v2/chat/${channelId}/messages${qs ? "?" + qs : ""}`);
+    },
+    send: (channelId: string, content: string, replyTo?: string) =>
+      apiFetch<any>(`/v2/chat/${channelId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ content, replyTo }),
+      }),
+    deleteMessage: (channelId: string, messageId: string) =>
+      apiFetch<void>(`/v2/chat/${channelId}/messages/${messageId}`, { method: "DELETE" }),
+  },
 
   // Audit
   audit: {

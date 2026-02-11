@@ -41,6 +41,9 @@ export function useEvents({ onEvent, enabled = true }: UseEventsOptions = {}) {
       case 'notification.new':
         // Could invalidate notification count
         break
+      case 'chat.message':
+        // Handled directly in chat component
+        break
       case 'workflow.started':
       case 'workflow.completed':
         mutate((key: string) => typeof key === 'string' && key.startsWith('/v2/workflows'), undefined, { revalidate: true })

@@ -8,6 +8,7 @@ import {
   DollarSign,
   FolderKanban,
   GitBranch,
+  MessageSquare,
   LayoutDashboard,
   Menu,
   Scale,
@@ -47,6 +48,11 @@ const navigation = [
     name: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
+  },
+  {
+    name: "Chat",
+    href: "/chat",
+    icon: MessageSquare,
   },
   {
     name: "Workflows",

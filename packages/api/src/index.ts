@@ -27,6 +27,7 @@ import eventsRoutes from './routes/events';
 import notificationRoutes from './routes/notifications';
 import webhookRoutes from './routes/webhooks';
 import deployRoutes from './routes/deploy';
+import chatRoutes from './routes/chat';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
@@ -171,6 +172,7 @@ app.route('/api/v2/events', eventsRoutes);
 app.route('/api/v2/notifications', notificationRoutes);
 app.route('/api/v2/webhooks', webhookRoutes);
 app.route('/api/v2/deploy', deployRoutes);
+app.route('/api/v2/chat', chatRoutes);
 
 // Root endpoint
 app.get('/', (c) => {

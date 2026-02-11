@@ -1,8 +1,14 @@
 import { Hono } from 'hono';
 import { eq, sql, and, desc, count, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, tasks, taskDependencies, taskExecutions, users, type Task, type NewTask, type NewTaskDependency } from '../db';
+import { db, tasks, taskDependencies, taskExecutions, users, projects, notifications, auditLog, type Task, type NewTask, type NewTaskDependency, type NewNotification, type NewAuditLog } from '../db';
 import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
+import { autoAssignTask } from '../engine/assigner';
+import { checkDependentTasks } from '../engine/workflow';
+import { logAuditEntry } from '../middleware/audit';
+
+// Import execution routes
+import executionRoutes from './executions';
 
 const app = new Hono();
 
@@ -55,6 +61,11 @@ const createDependencySchema = z.object({
 
 const statusUpdateSchema = z.object({
   status: z.enum(['created', 'planning', 'ready', 'assigned', 'in_progress', 'review', 'completed', 'blocked', 'cancelled', 'rejected']),
+});
+
+const transitionSchema = z.object({
+  status: z.enum(['created', 'planning', 'ready', 'assigned', 'in_progress', 'review', 'completed', 'blocked', 'cancelled', 'rejected']),
+  reason: z.string().optional(),
 });
 
 // GET /api/v2/tasks - List tasks
@@ -582,5 +593,329 @@ app.patch('/:id/status', requireRole('member'), async (c) => {
     return c.json({ error: 'Failed to update task status' }, 500);
   }
 });
+
+// POST /api/v2/tasks/:id/transition - Enhanced status transition with side effects
+app.post('/:id/transition', requireRole('member'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    
+    if (!id) {
+      return c.json({ error: 'Task ID is required' }, 400);
+    }
+
+    const validatedData = transitionSchema.parse(body);
+    const newStatus = validatedData.status;
+    const reason = validatedData.reason;
+
+    // Get current task with project info
+    const [currentTask] = await db
+      .select({
+        task: tasks,
+        project: projects,
+      })
+      .from(tasks)
+      .leftJoin(projects, eq(tasks.projectId, projects.id))
+      .where(eq(tasks.id, id))
+      .limit(1);
+
+    if (!currentTask) {
+      return c.json({ error: 'Task not found' }, 404);
+    }
+
+    const task = currentTask.task;
+    const project = currentTask.project;
+    const currentStatus = task.status;
+
+    // Validate status transition
+    const allowedTransitions = statusTransitions[currentStatus] || [];
+    if (!allowedTransitions.includes(newStatus)) {
+      return c.json({
+        error: 'Invalid status transition',
+        current: currentStatus,
+        requested: newStatus,
+        allowed: allowedTransitions,
+      }, 400);
+    }
+
+    // Check blocking dependencies for certain transitions
+    if (['assigned', 'in_progress'].includes(newStatus)) {
+      const blockingDeps = await db
+        .select({
+          dependsOnTaskId: taskDependencies.dependsOnTaskId,
+          dependsOnTaskStatus: sql<string>`t.status`,
+          dependsOnTaskTitle: sql<string>`t.title`,
+        })
+        .from(taskDependencies)
+        .innerJoin(sql`tasks t`, sql`t.id = ${taskDependencies.dependsOnTaskId}`)
+        .where(
+          and(
+            eq(taskDependencies.taskId, id),
+            eq(taskDependencies.dependencyType, 'blocks'),
+            sql`t.status != 'completed'`
+          )
+        );
+
+      if (blockingDeps.length > 0) {
+        return c.json({
+          error: 'Cannot transition: blocking dependencies not completed',
+          blockingDependencies: blockingDeps,
+        }, 400);
+      }
+    }
+
+    // Update task status
+    const updateData: any = {
+      status: newStatus,
+      updatedAt: new Date(),
+    };
+
+    // Set completion time if completed
+    if (newStatus === 'completed') {
+      updateData.completedAt = new Date();
+    }
+
+    const [updatedTask] = await db
+      .update(tasks)
+      .set(updateData)
+      .where(eq(tasks.id, id))
+      .returning();
+
+    // Execute side effects based on status transition
+    await executeTransitionSideEffects(updatedTask, currentStatus, newStatus, reason, project);
+
+    // Log the transition
+    await logAuditEntry({
+      actorId: getAuthUser(c).id,
+      actorType: 'user',
+      action: 'transition',
+      resourceType: 'task',
+      resourceId: id,
+      details: {
+        fromStatus: currentStatus,
+        toStatus: newStatus,
+        reason,
+      },
+    });
+
+    return c.json({ data: updatedTask });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({
+        error: 'Validation failed',
+        issues: error.issues,
+      }, 400);
+    }
+
+    console.error('Error transitioning task status:', error);
+    return c.json({ error: 'Failed to transition task status' }, 500);
+  }
+});
+
+// POST /api/v2/tasks/:id/auto-assign - Trigger auto-assignment
+app.post('/:id/auto-assign', requireRole('member'), async (c) => {
+  try {
+    const id = c.req.param('id');
+
+    if (!id) {
+      return c.json({ error: 'Task ID is required' }, 400);
+    }
+
+    // Check if task exists
+    const [task] = await db
+      .select()
+      .from(tasks)
+      .where(eq(tasks.id, id))
+      .limit(1);
+
+    if (!task) {
+      return c.json({ error: 'Task not found' }, 404);
+    }
+
+    if (task.assigneeId) {
+      return c.json({ 
+        error: 'Task is already assigned',
+        assigneeId: task.assigneeId 
+      }, 400);
+    }
+
+    // Trigger auto-assignment
+    const result = await autoAssignTask(id);
+
+    // Log the auto-assignment attempt
+    await logAuditEntry({
+      actorId: getAuthUser(c).id,
+      actorType: 'user',
+      action: 'auto_assign_triggered',
+      resourceType: 'task',
+      resourceId: id,
+      details: {
+        assigned: result.assigned,
+        agentId: result.agentId,
+        score: result.score,
+        reasoning: result.reasoning,
+      },
+    });
+
+    return c.json({ data: result });
+  } catch (error) {
+    console.error('Error triggering auto-assignment:', error);
+    return c.json({ error: 'Failed to trigger auto-assignment' }, 500);
+  }
+});
+
+/**
+ * Execute side effects when a task status changes
+ */
+async function executeTransitionSideEffects(
+  task: Task, 
+  fromStatus: string, 
+  toStatus: string, 
+  reason?: string,
+  project?: any
+): Promise<void> {
+  try {
+    // ASSIGNED → create notification for assigned agent
+    if (toStatus === 'assigned' && task.assigneeId) {
+      await createNotification({
+        recipientType: 'user',
+        recipientId: task.assigneeId,
+        channel: 'web',
+        priority: task.priority,
+        title: 'Task assigned to you',
+        body: `You have been assigned to task: ${task.title}`,
+        metadata: { 
+          taskId: task.id,
+          projectId: task.projectId,
+          fromStatus,
+          toStatus,
+          reason,
+        },
+      });
+    }
+
+    // COMPLETED → update project progress and check dependents
+    if (toStatus === 'completed') {
+      // Update project progress
+      if (project) {
+        await updateProjectProgress(task.projectId);
+      }
+
+      // Check if dependent tasks can become ready
+      const readyTaskIds = await checkDependentTasks(task.id);
+      
+      // Auto-assign ready tasks if they have no assignee
+      for (const readyTaskId of readyTaskIds) {
+        try {
+          const [readyTask] = await db
+            .select()
+            .from(tasks)
+            .where(eq(tasks.id, readyTaskId))
+            .limit(1);
+            
+          if (readyTask && !readyTask.assigneeId) {
+            await autoAssignTask(readyTaskId);
+          }
+        } catch (error) {
+          console.error(`Failed to auto-assign ready task ${readyTaskId}:`, error);
+        }
+      }
+    }
+
+    // BLOCKED → create notification for project owner
+    if (toStatus === 'blocked' && project) {
+      // For now, notify system admin since we don't have project owners in schema yet
+      await createNotification({
+        recipientType: 'user',
+        recipientId: '00000000-0000-0000-0000-000000000000',
+        channel: 'web',
+        priority: 'high',
+        title: 'Task blocked',
+        body: `Task "${task.title}" in project "${project.name}" has been blocked. ${reason || ''}`,
+        metadata: { 
+          taskId: task.id,
+          projectId: task.projectId,
+          fromStatus,
+          toStatus,
+          reason,
+        },
+      });
+    }
+
+    // CANCELLED → release agent slot and check dependents
+    if (toStatus === 'cancelled') {
+      // If task had executions, update agent availability
+      // Check dependents and potentially unblock them or cancel cascade
+      const dependentTaskIds = await checkDependentTasks(task.id);
+      
+      // Optionally notify about cancelled task impact
+      if (dependentTaskIds.length > 0) {
+        await createNotification({
+          recipientType: 'user',
+          recipientId: '00000000-0000-0000-0000-000000000000',
+          channel: 'web',
+          priority: 'normal',
+          title: 'Task cancellation impact',
+          body: `Cancelled task "${task.title}" had ${dependentTaskIds.length} dependent tasks that may now be unblocked.`,
+          metadata: { 
+            taskId: task.id,
+            dependentTasks: dependentTaskIds,
+            reason,
+          },
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error executing transition side effects:', error);
+    // Don't throw - side effects should not block the main transition
+  }
+}
+
+/**
+ * Update project progress based on task completion
+ */
+async function updateProjectProgress(projectId: string): Promise<void> {
+  try {
+    // Get task counts for the project
+    const [stats] = await db
+      .select({
+        total: count(tasks.id),
+        completed: count(sql`CASE WHEN ${tasks.status} = 'completed' THEN 1 END`),
+      })
+      .from(tasks)
+      .where(eq(tasks.projectId, projectId));
+
+    const total = Number(stats.total || 0);
+    const completed = Number(stats.completed || 0);
+    
+    if (total > 0) {
+      const healthScore = Math.round((completed / total) * 100);
+      
+      await db
+        .update(projects)
+        .set({
+          healthScore,
+          updatedAt: new Date(),
+        })
+        .where(eq(projects.id, projectId));
+    }
+  } catch (error) {
+    console.error('Error updating project progress:', error);
+  }
+}
+
+/**
+ * Helper to create notifications
+ */
+async function createNotification(notification: NewNotification): Promise<void> {
+  try {
+    await db.insert(notifications).values(notification);
+  } catch (error) {
+    console.error('Failed to create notification:', error);
+  }
+}
+
+// Mount execution routes under tasks
+app.route('/', executionRoutes);
 
 export default app;

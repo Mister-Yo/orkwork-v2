@@ -21,6 +21,10 @@ export const AVAILABLE_SCOPES = [
   'chat:write',
   'workflows:read',
   'workflows:write',
+  'sla:read',
+  'sla:write',
+  'executions:read',
+  'executions:write',
 ] as const;
 
 export type Scope = typeof AVAILABLE_SCOPES[number];

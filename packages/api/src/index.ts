@@ -15,6 +15,8 @@ import projectRoutes from './routes/projects';
 import taskRoutes from './routes/tasks';
 import auditRoutes from './routes/audit';
 import healthRoutes from './routes/health';
+import slaRoutes from './routes/sla';
+import workflowRoutes from './routes/workflows';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
@@ -86,7 +88,10 @@ app.get('/api', (c) => {
         users: '/api/v2/users',
         projects: '/api/v2/projects',
         tasks: '/api/v2/tasks',
+        executions: '/api/v2/tasks/:taskId/executions',
         audit: '/api/v2/audit',
+        sla: '/api/v2/sla',
+        workflows: '/api/v2/workflows',
       },
     },
   });
@@ -102,6 +107,8 @@ app.route('/api/v2/users', userRoutes);
 app.route('/api/v2/projects', projectRoutes);
 app.route('/api/v2/tasks', taskRoutes);
 app.route('/api/v2/audit', auditRoutes);
+app.route('/api/v2/sla', slaRoutes);
+app.route('/api/v2/workflows', workflowRoutes);
 
 // Root endpoint
 app.get('/', (c) => {

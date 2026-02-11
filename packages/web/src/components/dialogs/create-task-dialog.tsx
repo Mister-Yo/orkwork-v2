@@ -43,12 +43,12 @@ export function CreateTaskDialog() {
       await api.tasks.create({
         title: title.trim(),
         description: description.trim() || undefined,
-        project_id: projectId || undefined,
+        projectId: projectId || undefined,
         priority,
-        estimated_hours: estimatedHours ? parseFloat(estimatedHours) : undefined,
-        due_date: dueDate || undefined,
-        review_required: reviewRequired,
-        assignee_id: assigneeId || undefined,
+        estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
+        dueDate: dueDate || undefined,
+        reviewRequired: reviewRequired,
+        assigneeId: assigneeId || undefined,
       })
       await mutate("/v2/tasks")
       reset()

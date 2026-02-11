@@ -39,7 +39,7 @@ export function CreateAgentDialog() {
         name: name.trim(),
         type,
         model: model.trim(),
-        system_prompt: systemPrompt.trim(),
+        systemPrompt: systemPrompt.trim(),
         capabilities: capabilities ? capabilities.split(",").map(c => c.trim()).filter(Boolean) : [],
       })
       await mutate("/v2/agents")

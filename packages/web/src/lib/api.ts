@@ -35,7 +35,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     if ('data' in json) return json.data;
     if ('user' in json) return json.user;
     // List envelopes: {agents: [...], pagination}, {projects: [...], pagination}, etc.
-    const listKeys = ['agents', 'projects', 'tasks', 'decisions', 'users', 'entries', 'rules', 'keys', 'workflows'];
+    const listKeys = ['agents', 'projects', 'tasks', 'decisions', 'users', 'entries', 'rules', 'keys', 'workflows', 'channels', 'messages'];
     for (const key of listKeys) {
       if (key in json && Array.isArray(json[key])) return json[key] as T;
     }

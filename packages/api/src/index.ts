@@ -23,9 +23,16 @@ import intelligenceRoutes from './routes/intelligence';
 import memoryRoutes from './routes/memory';
 import capabilityRoutes from './routes/capabilities';
 import toolRoutes from './routes/tools';
+import eventsRoutes from './routes/events';
+import notificationRoutes from './routes/notifications';
+import webhookRoutes from './routes/webhooks';
+import deployRoutes from './routes/deploy';
 
 // Import middleware
 import { auditMiddleware } from './middleware/audit';
+
+// Import scheduler
+import { initializeScheduler, scheduler } from './engine/scheduler';
 
 // Create main Hono app
 const app = new Hono();
@@ -116,6 +123,19 @@ app.get('/api', (c) => {
         'agent-heartbeat': '/api/v2/agents/:id/heartbeat',
         'agent-permissions': '/api/v2/agents/:id/permissions',
         'agent-autonomy': '/api/v2/agents/:id/autonomy',
+        events: {
+          stream: '/api/v2/events/stream',
+          status: '/api/v2/events/status',
+        },
+        notifications: '/api/v2/notifications',
+        'notification-unread-count': '/api/v2/notifications/unread-count',
+        webhooks: '/api/v2/webhooks',
+        'webhook-logs': '/api/v2/webhooks/:id/logs',
+        'webhook-test': '/api/v2/webhooks/:id/test',
+        deploy: {
+          pull: '/api/v2/deploy/pull',
+          status: '/api/v2/deploy/status',
+        },
       },
     },
   });
@@ -141,6 +161,10 @@ app.route('/api/v2/workflows', workflowRoutes);
 app.route('/api/v2/costs', costRoutes);
 app.route('/api/v2/decisions', decisionRoutes);
 app.route('/api/v2/intelligence', intelligenceRoutes);
+app.route('/api/v2/events', eventsRoutes);
+app.route('/api/v2/notifications', notificationRoutes);
+app.route('/api/v2/webhooks', webhookRoutes);
+app.route('/api/v2/deploy', deployRoutes);
 
 // Root endpoint
 app.get('/', (c) => {
@@ -160,6 +184,11 @@ const startServer = () => {
   console.log(`🌐 Port: ${config.PORT}`);
   console.log(`🔗 CORS Origin: ${config.CORS_ORIGIN}`);
   
+  // Initialize and start background scheduler
+  console.log(`⏰ Initializing background scheduler...`);
+  initializeScheduler();
+  scheduler.start();
+  
   const server = Bun.serve({
     port: config.PORT,
     fetch: app.fetch,
@@ -172,6 +201,7 @@ const startServer = () => {
   console.log(`✅ Server running at http://localhost:${config.PORT}`);
   console.log(`📋 Health check: http://localhost:${config.PORT}/api/health`);
   console.log(`📖 API docs: http://localhost:${config.PORT}/api`);
+  console.log(`🔄 Background scheduler started`);
   
   return server;
 };
@@ -179,6 +209,11 @@ const startServer = () => {
 // Graceful shutdown
 const shutdown = (signal: string) => {
   console.log(`\n🛑 Received ${signal}, shutting down gracefully...`);
+  
+  // Stop background scheduler
+  console.log('⏰ Stopping background scheduler...');
+  scheduler.stop();
+  
   process.exit(0);
 };
 

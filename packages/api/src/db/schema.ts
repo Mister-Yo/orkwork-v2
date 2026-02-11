@@ -379,6 +379,41 @@ export const apiKeys = pgTable('api_keys', {
   expiresAtIdx: index('api_keys_expires_at_idx').on(table.expiresAt),
 }));
 
+export const webhooks = pgTable('webhooks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  url: text('url').notNull(),
+  events: text('events').array().notNull().default([]),
+  secret: varchar('secret', { length: 64 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdBy: uuid('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  description: text('description'),
+  lastTriggeredAt: timestamp('last_triggered_at'),
+  failureCount: integer('failure_count').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  urlIdx: index('webhooks_url_idx').on(table.url),
+  isActiveIdx: index('webhooks_is_active_idx').on(table.isActive),
+  createdByIdx: index('webhooks_created_by_idx').on(table.createdBy),
+  lastTriggeredAtIdx: index('webhooks_last_triggered_at_idx').on(table.lastTriggeredAt),
+}));
+
+export const webhookLogs = pgTable('webhook_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  webhookId: uuid('webhook_id').notNull().references(() => webhooks.id, { onDelete: 'cascade' }),
+  eventType: varchar('event_type', { length: 100 }).notNull(),
+  payload: jsonb('payload').$type<Record<string, any>>().notNull(),
+  responseStatus: integer('response_status'),
+  responseBody: text('response_body'),
+  durationMs: integer('duration_ms'),
+  success: boolean('success').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  webhookIdIdx: index('webhook_logs_webhook_id_idx').on(table.webhookId),
+  eventTypeIdx: index('webhook_logs_event_type_idx').on(table.eventType),
+  successIdx: index('webhook_logs_success_idx').on(table.success),
+  createdAtIdx: index('webhook_logs_created_at_idx').on(table.createdAt),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -552,6 +587,21 @@ export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
   }),
 }));
 
+export const webhooksRelations = relations(webhooks, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [webhooks.createdBy],
+    references: [users.id],
+  }),
+  logs: many(webhookLogs),
+}));
+
+export const webhookLogsRelations = relations(webhookLogs, ({ one }) => ({
+  webhook: one(webhooks, {
+    fields: [webhookLogs.webhookId],
+    references: [webhooks.id],
+  }),
+}));
+
 // Types for use in application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -595,3 +645,7 @@ export type ChatMessage = typeof chatMessages.$inferSelect;
 export type NewChatMessage = typeof chatMessages.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
+export type Webhook = typeof webhooks.$inferSelect;
+export type NewWebhook = typeof webhooks.$inferInsert;
+export type WebhookLog = typeof webhookLogs.$inferSelect;
+export type NewWebhookLog = typeof webhookLogs.$inferInsert;

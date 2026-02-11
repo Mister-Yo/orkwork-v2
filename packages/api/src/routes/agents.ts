@@ -7,6 +7,7 @@ import { requireScope } from '../auth/scopes';
 import { calculateAgentScore } from '../engine/performance';
 import { getAgentPermissions, changeAutonomyLevel, validateAutonomyChange } from '../engine/autonomy';
 import { updateHeartbeat, getHealthReport } from '../engine/health';
+import { emitAgentStatusChanged } from '../engine/events';
 
 const app = new Hono();
 
@@ -169,6 +170,11 @@ app.patch('/:id', requireRole('admin'), async (c) => {
       })
       .where(eq(agents.id, id))
       .returning();
+
+    // Emit agent status changed event if status was updated
+    if (validatedData.status && existingAgent[0].status !== validatedData.status) {
+      emitAgentStatusChanged(updatedAgent);
+    }
 
     return c.json({ agent: updatedAgent });
   } catch (error) {

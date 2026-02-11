@@ -12,6 +12,7 @@ import {
   type NewWorkflowRun,
 } from '../db';
 import { autoAssignTask } from './assigner';
+import { emitWorkflowStarted, emitWorkflowCompleted } from './events';
 
 export interface WorkflowStep {
   name: string;
@@ -92,6 +93,9 @@ export async function executeWorkflow(
       .insert(workflowRuns)
       .values(newWorkflowRun)
       .returning();
+
+    // Emit workflow started event
+    emitWorkflowStarted({ workflow, workflowRun });
 
     // Create tasks for each step
     const createdTasks: Array<{
@@ -234,7 +238,7 @@ export async function executeWorkflow(
     }
 
     // Update workflow run with results
-    await db
+    const [updatedWorkflowRun] = await db
       .update(workflowRuns)
       .set({
         results: {
@@ -247,7 +251,13 @@ export async function executeWorkflow(
         },
         ...(errors.length === 0 ? { status: 'completed', completedAt: new Date() } : {}),
       })
-      .where(eq(workflowRuns.id, workflowRun.id));
+      .where(eq(workflowRuns.id, workflowRun.id))
+      .returning();
+
+    // Emit workflow completed event if completed successfully
+    if (errors.length === 0) {
+      emitWorkflowCompleted({ workflow, workflowRun: updatedWorkflowRun });
+    }
 
     return {
       workflowRun,

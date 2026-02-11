@@ -13,6 +13,7 @@ import {
 import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
 import { executeWorkflow, calculateWorkflowProgress, validateWorkflowSteps } from '../engine/workflow';
 import { logAuditEntry } from '../middleware/audit';
+import { emitWorkflowStarted, emitWorkflowCompleted } from '../engine/events';
 
 const app = new Hono();
 

@@ -6,6 +6,7 @@ import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
 import { autoAssignTask } from '../engine/assigner';
 import { checkDependentTasks } from '../engine/workflow';
 import { logAuditEntry } from '../middleware/audit';
+import { emitTaskCreated, emitTaskUpdated, emitTaskCompleted, emitTaskBlocked } from '../engine/events';
 
 // Import execution routes
 import executionRoutes from './executions';
@@ -172,6 +173,9 @@ app.post('/', requireRole('member'), async (c) => {
 
     const [createdTask] = await db.insert(tasks).values(newTask).returning();
 
+    // Emit task created event
+    emitTaskCreated(createdTask);
+
     return c.json({ task: createdTask }, 201);
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -296,6 +300,9 @@ app.patch('/:id', requireRole('member'), async (c) => {
       .set(updateData)
       .where(eq(tasks.id, id))
       .returning();
+
+    // Emit task updated event
+    emitTaskUpdated(updatedTask);
 
     return c.json({ task: updatedTask });
   } catch (error) {
@@ -775,6 +782,14 @@ async function executeTransitionSideEffects(
   project?: any
 ): Promise<void> {
   try {
+    // Emit real-time events based on status change
+    if (toStatus === 'completed') {
+      emitTaskCompleted(task);
+    } else if (toStatus === 'blocked') {
+      emitTaskBlocked(task);
+    } else {
+      emitTaskUpdated(task);
+    }
     // ASSIGNED → create notification for assigned agent
     if (toStatus === 'assigned' && task.assigneeId) {
       await createNotification({

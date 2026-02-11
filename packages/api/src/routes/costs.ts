@@ -12,6 +12,7 @@ import {
 import { requireAuth } from '../auth/middleware';
 import { requireScope } from '../auth/scopes';
 import { updateAgentSpent } from '../engine/costs';
+import { emitCostRecorded } from '../engine/events';
 
 const app = new Hono();
 
@@ -118,6 +119,9 @@ app.post('/', requireScope('costs:write'), async (c) => {
 
     // Update agent spent amount
     await updateAgentSpent(validatedData.agent_id, validatedData.amount_usd);
+
+    // Emit cost recorded event
+    emitCostRecorded(createdCost);
 
     // Return cost with amount in USD
     return c.json({

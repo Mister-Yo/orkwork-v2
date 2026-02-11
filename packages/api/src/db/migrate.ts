@@ -338,6 +338,35 @@ async function runMigrations() {
       )
     `);
 
+    await db.execute(drizzleSql`
+      CREATE TABLE IF NOT EXISTS webhooks (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        url TEXT NOT NULL,
+        events TEXT[] NOT NULL DEFAULT '{}',
+        secret VARCHAR(64) NOT NULL,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        description TEXT,
+        last_triggered_at TIMESTAMP,
+        failure_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(drizzleSql`
+      CREATE TABLE IF NOT EXISTS webhook_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        webhook_id UUID NOT NULL REFERENCES webhooks(id) ON DELETE CASCADE,
+        event_type VARCHAR(100) NOT NULL,
+        payload JSONB NOT NULL,
+        response_status INTEGER,
+        response_body TEXT,
+        duration_ms INTEGER,
+        success BOOLEAN NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
     // ALTER existing tables to add new columns (idempotent)
     console.log('📋 Altering existing tables...');
     const alterStatements = [
@@ -457,6 +486,16 @@ async function runMigrations() {
       `CREATE INDEX IF NOT EXISTS api_keys_is_active_idx ON api_keys(is_active)`,
       `CREATE INDEX IF NOT EXISTS api_keys_created_by_idx ON api_keys(created_by)`,
       `CREATE INDEX IF NOT EXISTS api_keys_expires_at_idx ON api_keys(expires_at)`,
+      
+      // Webhook indexes
+      `CREATE INDEX IF NOT EXISTS webhooks_url_idx ON webhooks(url)`,
+      `CREATE INDEX IF NOT EXISTS webhooks_is_active_idx ON webhooks(is_active)`,
+      `CREATE INDEX IF NOT EXISTS webhooks_created_by_idx ON webhooks(created_by)`,
+      `CREATE INDEX IF NOT EXISTS webhooks_last_triggered_at_idx ON webhooks(last_triggered_at)`,
+      `CREATE INDEX IF NOT EXISTS webhook_logs_webhook_id_idx ON webhook_logs(webhook_id)`,
+      `CREATE INDEX IF NOT EXISTS webhook_logs_event_type_idx ON webhook_logs(event_type)`,
+      `CREATE INDEX IF NOT EXISTS webhook_logs_success_idx ON webhook_logs(success)`,
+      `CREATE INDEX IF NOT EXISTS webhook_logs_created_at_idx ON webhook_logs(created_at)`,
     ];
     for (const idx of indexes) {
       await db.execute(drizzleSql.raw(idx));

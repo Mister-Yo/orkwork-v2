@@ -1,11 +1,14 @@
 "use client"
 
+import Link from "next/link"
+
 import { CheckSquare, Plus, Filter } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTasks } from "@/hooks/use-api"
+import { CreateTaskDialog } from "@/components/dialogs/create-task-dialog"
 
 const statusColors: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
@@ -69,7 +72,7 @@ export default function TasksPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><Filter className="h-4 w-4 mr-2" /> Filter</Button>
-          <Button><Plus className="h-4 w-4 mr-2" /> New Task</Button>
+          <CreateTaskDialog />
         </div>
       </div>
 
@@ -93,7 +96,7 @@ export default function TasksPage() {
               </div>
               <div className="space-y-2">
                 {grouped[status].map((task: any) => (
-                  <div key={task.id} className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
+                  <Link href={`/tasks/${task.id}`} key={task.id}><div className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent/50 transition-colors">
                     <div className={`w-2 h-2 rounded-full flex-shrink-0 ${priorityDots[task.priority] || 'bg-gray-400'}`} />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{task.title}</p>
@@ -107,7 +110,7 @@ export default function TasksPage() {
                     <span className={`text-xs font-medium capitalize ${priorityColors[task.priority] || ''}`}>
                       {task.priority}
                     </span>
-                  </div>
+                  </div></Link>
                 ))}
               </div>
             </div>

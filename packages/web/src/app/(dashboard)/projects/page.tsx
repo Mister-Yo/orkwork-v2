@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { FolderKanban, Plus, Calendar, DollarSign } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { useProjects } from "@/hooks/use-api"
+import { CreateProjectDialog } from "@/components/dialogs/create-project-dialog"
 
 const riskColors: Record<string, string> = {
   low: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
@@ -37,7 +40,7 @@ export default function ProjectsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Projects</h1>
           <p className="text-muted-foreground">{projectsList.length} projects</p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" /> New Project</Button>
+        <CreateProjectDialog />
       </div>
 
       {projectsList.length === 0 ? (
@@ -59,7 +62,7 @@ export default function ProjectsPage() {
             const budgetPct = budgetUsd > 0 ? Math.round((spentUsd / budgetUsd) * 100) : 0
 
             return (
-              <Card key={project.id} className="hover:shadow-md transition-shadow">
+              <Link href={`/projects/${project.id}`} key={project.id}><Card className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-xl">{project.name}</CardTitle>
@@ -100,7 +103,7 @@ export default function ProjectsPage() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card></Link>
             )
           })}
         </div>

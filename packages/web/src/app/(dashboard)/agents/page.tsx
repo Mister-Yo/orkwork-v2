@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+
 import { Bot, Plus, Shield, Zap } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -7,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { useAgents } from "@/hooks/use-api"
+import { CreateAgentDialog } from "@/components/dialogs/create-agent-dialog"
 
 const statusColors: Record<string, string> = {
   active: 'bg-emerald-500',
@@ -49,7 +52,7 @@ export default function AgentsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
           <p className="text-muted-foreground">{agentsList.length} agents configured</p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" /> Add Agent</Button>
+        <CreateAgentDialog />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -63,7 +66,7 @@ export default function AgentsPage() {
           const totalSpent = agent.total_spent_usd ?? agent.totalSpentUsd ?? 0
 
           return (
-            <Card key={agent.id} className="hover:shadow-md transition-shadow">
+            <Link href={`/agents/${agent.id}`} key={agent.id}><Card className="hover:shadow-md transition-shadow">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold ${avatarColors[colorIdx]}`}>
@@ -105,7 +108,7 @@ export default function AgentsPage() {
                   <p className="text-xs text-muted-foreground line-clamp-2">{agent.system_prompt.substring(0, 100)}...</p>
                 )}
               </CardContent>
-            </Card>
+            </Card></Link>
           )
         })}
       </div>

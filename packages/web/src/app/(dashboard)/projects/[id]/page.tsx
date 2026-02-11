@@ -73,8 +73,8 @@ export default function ProjectDetailPage() {
   }
 
   const p: any = project
-  const budgetUsd = p.budget_usd ?? p.budgetUsd ?? 0
-  const spentUsd = p.spent_usd ?? p.spentUsd ?? 0
+  const budgetUsd = (p.budget_usd ?? p.budgetUsd ?? 0) / 100
+  const spentUsd = (p.spent_usd ?? p.spentUsd ?? 0) / 100
   const riskLevel = p.risk_level ?? p.riskLevel ?? 'low'
   const healthScore = p.health_score ?? p.healthScore ?? 0
   const deadline = p.deadline ? new Date(p.deadline).toLocaleDateString() : null

@@ -1,6 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
+import { useState } from "react"
 import { ArrowLeft, Bot, Shield, Zap, Clock, DollarSign, Activity, Heart, Edit } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
 import { useAgent, useAgentPerformance, useAgentHealth } from "@/hooks/use-api"
+import { api } from "@/lib/api"
 
 const statusBadgeColors: Record<string, string> = {
   active: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
@@ -23,7 +25,10 @@ export default function AgentDetailPage() {
   const router = useRouter()
   const id = params.id as string
 
-  const { data: agent, isLoading } = useAgent(id)
+  const { data: agent, isLoading, mutate } = useAgent(id)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editPrompt, setEditPrompt] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
   const { data: performance } = useAgentPerformance(id)
   const { data: health } = useAgentHealth(id)
 
@@ -55,8 +60,8 @@ export default function AgentDetailPage() {
   const autonomy = a.autonomy_level ?? a.autonomyLevel ?? 'tool'
   const maxTasks = a.max_concurrent_tasks ?? a.maxConcurrentTasks ?? 1
   const model = a.model || 'unknown'
-  const dailyBudget = a.daily_budget_usd ?? a.dailyBudgetUsd ?? 0
-  const totalSpent = a.total_spent_usd ?? a.totalSpentUsd ?? 0
+  const dailyBudget = (a.daily_budget_usd ?? a.dailyBudgetUsd ?? 0) / 100
+  const totalSpent = (a.total_spent_usd ?? a.totalSpentUsd ?? 0) / 100
   const capabilities = a.capabilities || []
   const createdAt = a.created_at ?? a.createdAt
 
@@ -80,7 +85,7 @@ export default function AgentDetailPage() {
           </div>
           <p className="text-muted-foreground capitalize">{a.type} agent • {model}</p>
         </div>
-        <Button variant="outline" onClick={() => router.push('/agents')}>
+        <Button variant="outline" onClick={() => { setEditPrompt(a.system_prompt || a.systemPrompt || ""); setIsEditing(true); }}>
           <Edit className="h-4 w-4 mr-2" /> Edit
         </Button>
       </div>
@@ -173,9 +178,31 @@ export default function AgentDetailPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">System Prompt</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="text-sm whitespace-pre-wrap bg-muted p-4 rounded-lg max-h-48 overflow-auto">
-              {a.system_prompt || a.systemPrompt}
-            </pre>
+            {isEditing ? (
+              <textarea
+                className="w-full min-h-[120px] text-sm p-4 rounded-lg border bg-background resize-y font-mono"
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+              />
+            ) : (
+              <pre className="text-sm whitespace-pre-wrap bg-muted p-4 rounded-lg max-h-48 overflow-auto">
+                {a.system_prompt || a.systemPrompt}
+              </pre>
+            )}
+            {isEditing && (
+              <div className="flex gap-2 mt-3 justify-end">
+                <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)} disabled={isSaving}>Cancel</Button>
+                <Button size="sm" onClick={async () => {
+                  setIsSaving(true);
+                  try {
+                    await api.agents.update(id, { systemPrompt: editPrompt });
+                    await mutate();
+                    setIsEditing(false);
+                  } catch (e) { console.error(e); }
+                  setIsSaving(false);
+                }} disabled={isSaving}>{isSaving ? "Saving..." : "Save"}</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -213,11 +240,11 @@ export default function AgentDetailPage() {
           <CardContent>
             {health ? (
               <div className="space-y-2">
-                {health.status && (
+                {health.health_score != null && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Status</span>
-                    <span className={`font-medium ${health.status === 'healthy' ? 'text-green-600' : health.status === 'degraded' ? 'text-yellow-600' : 'text-red-600'}`}>
-                      {String(health.status).charAt(0).toUpperCase() + String(health.status).slice(1)}
+                    <span className="text-muted-foreground">Health Score</span>
+                    <span className={`font-medium ${health.health_score >= 80 ? 'text-green-600' : health.health_score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                      {health.health_score}/100
                     </span>
                   </div>
                 )}
@@ -233,28 +260,34 @@ export default function AgentDetailPage() {
                     <span className="font-medium">{(Number(health.error_rate) * 100).toFixed(1)}%</span>
                   </div>
                 )}
-                {health.avg_response_time != null && (
+                {health.avg_response_time_ms != null && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Avg Response</span>
-                    <span className="font-medium">{Number(health.avg_response_time).toFixed(0)}ms</span>
+                    <span className="font-medium">{health.avg_response_time_ms ? Number(health.avg_response_time_ms).toFixed(0) + 'ms' : 'N/A'}</span>
                   </div>
                 )}
-                {Array.isArray(health.current_issues) && health.current_issues.length > 0 && (
+                {health.current_tasks != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Current Tasks</span>
+                    <span className="font-medium">{health.current_tasks} / {health.max_concurrent_tasks ?? '?'}</span>
+                  </div>
+                )}
+                {health.budget_utilization != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Budget Used</span>
+                    <span className="font-medium">{(Number(health.budget_utilization) * 100).toFixed(1)}%</span>
+                  </div>
+                )}
+                {Array.isArray(health.issues) && health.issues.length > 0 && (
                   <div className="text-sm">
                     <span className="text-muted-foreground">Issues</span>
                     <ul className="mt-1 space-y-1">
-                      {health.current_issues.map((issue: string, i: number) => (
+                      {health.issues.map((issue: string, i: number) => (
                         <li key={i} className="text-yellow-600 text-xs">⚠ {issue}</li>
                       ))}
                     </ul>
                   </div>
                 )}
-                {(!health.status && !health.uptime_hours) && Object.entries(health).filter(([k]) => k !== 'agent_id').map(([key, value]) => (
-                  <div key={key} className="flex justify-between text-sm">
-                    <span className="text-muted-foreground capitalize">{key.replace(/_/g, ' ')}</span>
-                    <span className="font-medium">{String(value)}</span>
-                  </div>
-                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No health data available.</p>

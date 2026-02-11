@@ -65,16 +65,16 @@ export default function CostsPage() {
   // Calculate per-agent costs
   const agentCosts = agentsList.map((agent: any) => ({
     name: agent.name,
-    spent: agent.total_spent_usd ?? agent.totalSpentUsd ?? 0,
-    budget: agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0,
+    spent: (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0) / 100,
+    budget: (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0) / 100,
     status: agent.status,
   })).sort((a: any, b: any) => b.spent - a.spent)
 
   // Calculate per-project costs
   const projectCosts = projectsList.map((project: any) => ({
     name: project.name,
-    spent: project.spent_usd ?? project.spentUsd ?? 0,
-    budget: project.budget_usd ?? project.budgetUsd ?? 0,
+    spent: (project.spent_usd ?? project.spentUsd ?? 0) / 100,
+    budget: (project.budget_usd ?? project.budgetUsd ?? 0) / 100,
     status: project.status,
   })).sort((a: any, b: any) => b.spent - a.spent)
 

@@ -178,6 +178,28 @@ export function useHealth() {
   )
 }
 
+// Audit hooks
+export function useAuditLog(limit = 20) {
+  return useSWR<any>(
+    `/v2/audit?limit=${limit}`,
+    () => api.audit.list({ limit }),
+    {
+      refreshInterval: 30 * 1000,
+      revalidateOnFocus: true,
+    }
+  )
+}
+
+export function useAuditStats(days = 7) {
+  return useSWR<any>(
+    `/v2/audit/stats?days=${days}`,
+    () => api.audit.stats(days),
+    {
+      refreshInterval: 5 * 60 * 1000,
+    }
+  )
+}
+
 // Generic hook for manual SWR with consistent error handling
 export function useApiData<T>(key: string | null, fetcher: () => Promise<T>, options = {}) {
   return useSWR<T>(

@@ -24,7 +24,7 @@ import { useUser } from "@/lib/auth"
 const navigation = [
   {
     name: "Dashboard",
-    href: "/",
+    href: "/dashboard",
     icon: LayoutDashboard,
   },
   {
@@ -86,7 +86,7 @@ function SidebarContent({ className }: SidebarContentProps) {
     <div className={cn("flex h-full flex-col", className)}>
       {/* Logo/Brand */}
       <div className="flex h-14 items-center border-b px-4 lg:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Bot className="h-4 w-4" />
           </div>
@@ -99,7 +99,7 @@ function SidebarContent({ className }: SidebarContentProps) {
         <nav className="grid items-start gap-2 px-2 lg:px-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href || 
-              (item.href !== "/" && pathname?.startsWith(item.href))
+              (item.href !== "/dashboard" && pathname?.startsWith(item.href))
             
             return (
               <Link

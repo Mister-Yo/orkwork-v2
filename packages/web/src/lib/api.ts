@@ -92,4 +92,16 @@ export const api = {
   
   // Health
   health: () => apiFetch<any>('/health'),
+
+  // Audit
+  audit: {
+    list: (params?: { limit?: number; page?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.limit) q.set('limit', String(params.limit));
+      if (params?.page) q.set('page', String(params.page));
+      const qs = q.toString();
+      return apiFetch<any>(`/v2/audit${qs ? '?' + qs : ''}`);
+    },
+    stats: (days?: number) => apiFetch<any>(`/v2/audit/stats${days ? '?days=' + days : ''}`),
+  },
 };

@@ -1,17 +1,23 @@
 "use client"
 
-import { Bot, CheckSquare, DollarSign } from "lucide-react"
+import { Bot, CheckSquare, DollarSign, TrendingUp } from "lucide-react"
 import { HealthScore } from "@/components/dashboard/health-score"
 import { StatCard } from "@/components/dashboard/stat-card"
 import { AgentStatus } from "@/components/dashboard/agent-status"
 import { ProjectHealth } from "@/components/dashboard/project-health"
+import { DailyBrief } from "@/components/dashboard/daily-brief"
+import { DecisionsQueue } from "@/components/dashboard/decisions-queue"
+import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { useAgents, useProjects, useTasks } from "@/hooks/use-api"
+import useSWR from 'swr'
+import { api } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
 function DashboardStats() {
   const { data: agents, isLoading: agentsLoading } = useAgents()
   const { data: tasks, isLoading: tasksLoading } = useTasks()
+  const { data: costs } = useSWR<any>('/v2/costs/summary', () => api.costs.summary(), { refreshInterval: 5 * 60 * 1000 })
 
   const agentsList = Array.isArray(agents) ? agents : []
   const tasksList = Array.isArray(tasks) ? tasks : []
@@ -20,6 +26,7 @@ function DashboardStats() {
   const completedTasks = tasksList.filter((t: any) => t.status === 'completed').length
   const inProgressTasks = tasksList.filter((t: any) => t.status === 'in_progress' || t.status === 'assigned').length
   const totalTasks = tasksList.length
+  const totalSpent = costs?.totalSpent ?? costs?.total_spent ?? 0
 
   if (agentsLoading || tasksLoading) {
     return (
@@ -57,10 +64,10 @@ function DashboardStats() {
       />
 
       <StatCard
-        title="Completed"
-        value={completedTasks}
+        title="Total Spent"
+        value={`$${Number(totalSpent).toFixed(2)}`}
         icon={DollarSign}
-        subtitle={`${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}% done`}
+        subtitle={`${completedTasks} tasks completed`}
       />
     </div>
   )
@@ -125,6 +132,13 @@ export default function DashboardPage() {
       </div>
 
       <DashboardStats />
+
+      <DailyBrief />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <DecisionsQueue />
+        <ActivityFeed />
+      </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <RecentTasks />

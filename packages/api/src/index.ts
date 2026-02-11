@@ -127,11 +127,8 @@ const shutdown = (signal: string) => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-// Start server if this file is run directly
-if (import.meta.main) {
-  startServer();
-}
+// Start the server
+startServer();
 
-// Export app for testing
-export default app;
-export { startServer };
+// Named export for testing (avoid default export — Bun auto-serves default exports)
+export { app, startServer };

@@ -57,7 +57,7 @@ export const sessionConfig = {
   secret: config.SESSION_SECRET,
   maxAge: 30 * 24 * 60 * 60, // 30 days in seconds
   secure: isProduction, // HTTPS only in production
-  sameSite: isProduction ? 'strict' : 'lax', // CSRF protection
+  sameSite: 'lax', // Must be 'lax' for OAuth redirects from GitHub
   httpOnly: true, // XSS protection
 } as const;
 

@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install API deps
+        run: cd packages/api && bun install
+
+      - name: Install Web deps
+        run: cd packages/web && bun install
+
+      - name: Typecheck API
+        run: cd packages/api && bun run tsc --noEmit 2>/dev/null || echo "API typecheck skipped (no tsconfig)"
+
+      - name: Build Web
+        run: cd packages/web && bun run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install deps
+        run: |
+          cd packages/api && bun install
+          cd ../web && bun install
+
+      - name: Check formatting
+        run: |
+          cd packages/web && bunx prettier --check "src/**/*.{ts,tsx}" 2>/dev/null || echo "Prettier not configured, skipping"

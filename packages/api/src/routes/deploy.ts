@@ -132,7 +132,7 @@ app.post('/pull', requireAuth, requireRole('admin'), async (c) => {
     
     // Restart API service (assuming systemd service)
     try {
-      const restartApiResult = await executeCommand('sudo systemctl restart orkwork-api');
+      const restartApiResult = await executeCommand('sudo systemctl restart orkwork-v2-api');
       deployLog.push(`[${new Date().toISOString()}] API service restarted`);
       if (restartApiResult.stderr) {
         deployLog.push(`[${new Date().toISOString()}] API restart stderr:`);
@@ -145,7 +145,7 @@ app.post('/pull', requireAuth, requireRole('admin'), async (c) => {
 
     // Restart Web service (assuming systemd service)
     try {
-      const restartWebResult = await executeCommand('sudo systemctl restart orkwork-web');
+      const restartWebResult = await executeCommand('sudo systemctl restart orkwork-v2-web');
       deployLog.push(`[${new Date().toISOString()}] Web service restarted`);
       if (restartWebResult.stderr) {
         deployLog.push(`[${new Date().toISOString()}] Web restart stderr:`);
@@ -256,6 +256,61 @@ app.get('/status', requireAuth, requireRole('admin'), async (c) => {
       message: error.message,
       timestamp: new Date().toISOString(),
     }, 500);
+  }
+});
+
+
+// GitHub Webhook — auto-deploy on push to main
+app.post('/webhook/github', async (c) => {
+  try {
+    const secret = process.env.DEPLOY_WEBHOOK_SECRET;
+    if (!secret) {
+      return c.json({ error: 'Webhook secret not configured' }, 500);
+    }
+
+    const signature = c.req.header('x-hub-signature-256');
+    if (!signature) {
+      return c.json({ error: 'Missing signature' }, 401);
+    }
+
+    const body = await c.req.text();
+    const { createHmac } = await import('crypto');
+    const expectedSig = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
+    
+    if (signature !== expectedSig) {
+      return c.json({ error: 'Invalid signature' }, 401);
+    }
+
+    const payload = JSON.parse(body);
+    
+    if (payload.ref !== 'refs/heads/main') {
+      return c.json({ message: 'Skipped - not main branch' });
+    }
+
+    const event = c.req.header('x-github-event');
+    if (event !== 'push') {
+      return c.json({ message: 'Skipped - not push event' });
+    }
+
+    console.log('[Deploy] GitHub webhook: deploying push to main by', payload.pusher?.name);
+
+    const { exec: execCb } = await import('child_process');
+    execCb('/opt/orkwork-v2/deploy.sh', (error) => {
+      if (error) {
+        console.error('[Deploy] Script failed:', error.message);
+      } else {
+        console.log('[Deploy] Script completed');
+      }
+    });
+
+    return c.json({ 
+      message: 'Deploy triggered',
+      commit: payload.head_commit?.id?.substring(0, 7),
+      pusher: payload.pusher?.name,
+    });
+  } catch (error: any) {
+    console.error('[Deploy] Webhook error:', error);
+    return c.json({ error: 'Webhook processing failed' }, 500);
   }
 });
 

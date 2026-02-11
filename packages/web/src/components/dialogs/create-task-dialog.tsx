@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus } from "lucide-react"
+import { Plus, Bot } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
 import { useSWRConfig } from "swr"
-import { useProjects } from "@/hooks/use-api"
+import { useProjects, useAgents } from "@/hooks/use-api"
 
 export function CreateTaskDialog() {
   const [open, setOpen] = useState(false)
@@ -18,6 +18,8 @@ export function CreateTaskDialog() {
   const { mutate } = useSWRConfig()
   const { data: projects } = useProjects()
   const projectsList = Array.isArray(projects) ? projects : []
+  const { data: agentsData } = useAgents()
+  const agentsList = (agentsData as any)?.agents || (Array.isArray(agentsData) ? agentsData : [])
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -26,9 +28,10 @@ export function CreateTaskDialog() {
   const [estimatedHours, setEstimatedHours] = useState("")
   const [dueDate, setDueDate] = useState("")
   const [reviewRequired, setReviewRequired] = useState(false)
+  const [assigneeId, setAssigneeId] = useState("")
 
   const reset = () => {
-    setTitle(""); setDescription(""); setProjectId(""); setPriority("normal"); setEstimatedHours(""); setDueDate(""); setReviewRequired(false); setError("")
+    setTitle(""); setDescription(""); setProjectId(""); setPriority("normal"); setEstimatedHours(""); setDueDate(""); setReviewRequired(false); setAssigneeId(""); setError("")
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -45,6 +48,7 @@ export function CreateTaskDialog() {
         estimated_hours: estimatedHours ? parseFloat(estimatedHours) : undefined,
         due_date: dueDate || undefined,
         review_required: reviewRequired,
+        assignee_id: assigneeId || undefined,
       })
       await mutate("/v2/tasks")
       reset()
@@ -99,6 +103,19 @@ export function CreateTaskDialog() {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Assign Agent</Label>
+            <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger><SelectValue placeholder="Select agent (optional)" /></SelectTrigger>
+              <SelectContent>
+                {agentsList.map((a: any) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <span className="flex items-center gap-2"><Bot className="h-3 w-3" /> {a.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

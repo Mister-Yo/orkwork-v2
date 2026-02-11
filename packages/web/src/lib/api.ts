@@ -14,6 +14,15 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error('Unauthorized');
   }
+
+  if (res.status === 403) {
+    const err = await res.json().catch(() => ({ error: 'Forbidden' }));
+    if (err.error === 'Account pending approval') {
+      if (typeof window !== 'undefined') window.location.href = '/pending';
+      throw new Error('Account pending approval');
+    }
+    throw new Error(err.error || 'Forbidden');
+  }
   
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
@@ -36,6 +45,17 @@ export const api = {
     logout: () => apiFetch<void>('/auth/logout', { method: 'POST' }),
   },
   
+  // Users
+  users: {
+    list: () => apiFetch<any>('/v2/users'),
+    get: (id: string) => apiFetch<any>(`/v2/users/${id}`),
+    approve: (id: string) => apiFetch<any>(`/v2/users/${id}/approve`, { method: 'POST' }),
+    reject: (id: string) => apiFetch<any>(`/v2/users/${id}/reject`, { method: 'POST' }),
+    delete: (id: string) => apiFetch<void>(`/v2/users/${id}`, { method: 'DELETE' }),
+    updateRole: (id: string, role: string) => apiFetch<any>(`/v2/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+    update: (id: string, data: any) => apiFetch<any>(`/v2/users/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  },
+
   // Agents
   agents: {
     list: () => apiFetch<any[]>('/v2/agents'),

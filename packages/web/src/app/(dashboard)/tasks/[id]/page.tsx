@@ -1,14 +1,21 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, CheckSquare, Clock, Calendar, User, FolderKanban, RefreshCw } from "lucide-react"
+import { ArrowLeft, Bot, CheckSquare, Clock, Calendar, User, FolderKanban, RefreshCw } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { useTask } from "@/hooks/use-api"
+import { useTask, useAgents } from "@/hooks/use-api"
 import { api } from "@/lib/api"
 import { mutate } from "swr"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const statusColors: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
@@ -49,6 +56,8 @@ export default function TaskDetailPage() {
   const id = params.id as string
 
   const { data: task, isLoading } = useTask(id)
+  const { data: agentsData } = useAgents()
+  const agentsList = (agentsData as any)?.agents || (Array.isArray(agentsData) ? agentsData : [])
 
   if (isLoading) {
     return (
@@ -94,6 +103,15 @@ export default function TaskDetailPage() {
     }
   }
 
+  async function assignAgent(agentId: string) {
+    try {
+      await api.tasks.update(id, { assigneeId: agentId === "unassigned" ? null : agentId })
+      mutate(`/v2/tasks/${id}`)
+    } catch (e) {
+      console.error('Failed to assign agent:', e)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" size="sm" onClick={() => router.push('/tasks')}>
@@ -127,6 +145,35 @@ export default function TaskDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Assignment */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground">Assign Agent</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Select value={t.assignee_id || t.assigneeId || "unassigned"} onValueChange={assignAgent}>
+              <SelectTrigger className="w-[250px]">
+                <SelectValue placeholder="Select an agent..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {agentsList.map((a: any) => (
+                  <SelectItem key={a.id} value={a.id}>
+                    <span className="flex items-center gap-2">
+                      <Bot className="h-3 w-3" /> {a.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {assigneeName && (
+              <span className="text-sm text-muted-foreground">Currently: <strong>{assigneeName}</strong></span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Details */}
       <div className="grid gap-4 md:grid-cols-2">

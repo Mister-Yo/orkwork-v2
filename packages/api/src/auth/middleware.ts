@@ -4,10 +4,11 @@ import { createHash } from 'crypto';
 import { eq, and, gt } from 'drizzle-orm';
 import { db, users, sessions, agents, apiKeys, type User, type Agent, type ApiKey } from '../db';
 
-export type UserRole = 'owner' | 'admin' | 'member' | 'viewer';
+export type UserRole = 'owner' | 'admin' | 'member' | 'pending' | 'viewer';
 
 // Role hierarchy (higher number = more permissions)
 const roleHierarchy: Record<UserRole, number> = {
+  pending: -1,
   viewer: 0,
   member: 1,
   admin: 2,
@@ -121,6 +122,14 @@ export const requireAuth = createMiddleware(async (c, next) => {
   
   if (!authType || (!user && !agent)) {
     return c.json({ error: 'Authentication required' }, 401);
+  }
+
+  // Block pending users from all routes except /api/auth/me and /api/auth/logout
+  if (authType === 'user' && user && user.role === 'pending') {
+    const path = c.req.path;
+    if (!path.endsWith('/auth/me') && !path.endsWith('/auth/logout')) {
+      return c.json({ error: 'Account pending approval' }, 403);
+    }
   }
 
   await next();

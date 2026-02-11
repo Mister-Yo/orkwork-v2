@@ -5,7 +5,7 @@ import { relations } from 'drizzle-orm';
 export const enablePgVector = `CREATE EXTENSION IF NOT EXISTS vector`;
 
 // Enums
-export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'member', 'viewer']);
+export const userRoleEnum = pgEnum('user_role', ['owner', 'admin', 'member', 'pending', 'viewer']);
 export const agentStatusEnum = pgEnum('agent_status', ['active', 'idle', 'error', 'disabled']);
 export const agentTypeEnum = pgEnum('agent_type', ['assistant', 'specialist', 'researcher', 'manager']);
 export const taskStatusEnum = pgEnum('task_status', ['created', 'planning', 'ready', 'assigned', 'in_progress', 'review', 'completed', 'blocked', 'cancelled', 'rejected']);
@@ -34,7 +34,9 @@ export const users = pgTable('users', {
   displayName: varchar('display_name', { length: 255 }).notNull(),
   avatarUrl: text('avatar_url'),
   email: varchar('email', { length: 320 }).unique(),
-  role: userRoleEnum('role').notNull().default('viewer'),
+  role: userRoleEnum('role').notNull().default('pending'),
+  title: varchar("title", { length: 255 }),
+  department: varchar("department", { length: 100 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -56,6 +58,8 @@ export const agents = pgTable('agents', {
   totalSpentUsd: integer('total_spent_usd').default(0),  // in cents
   autonomyLevel: autonomyLevelEnum('autonomy_level').notNull().default('tool'),
   maxConcurrentTasks: integer('max_concurrent_tasks').notNull().default(1),
+  department: varchar("department", { length: 100 }),
+  reportsTo: uuid("reports_to").references(() => agents.id, { onDelete: "set null" }),
   slaRuleId: uuid('sla_rule_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

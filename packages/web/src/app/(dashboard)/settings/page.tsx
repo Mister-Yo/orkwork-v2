@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import useSWR, { useSWRConfig } from "swr"
-import { Settings, Copy, Trash2, Plus, AlertTriangle, Shield, Activity, Server, User, Key, Clock } from "lucide-react"
+import { Settings, Copy, Trash2, Plus, AlertTriangle, Shield, Activity, Server, User, Users, Key, Clock, Check, X, ChevronDown } from "lucide-react"
 import { useUser } from "@/lib/auth"
 import { api } from "@/lib/api"
 import { useAgents } from "@/hooks/use-api"
@@ -578,6 +578,212 @@ function SystemTab() {
   )
 }
 
+
+// ─── Team Tab ──────────────────────────────────────────────
+function TeamTab() {
+  const { user: currentUser } = useUser()
+  const { data: usersData, isLoading, mutate: mutateUsers } = useSWR("/v2/users-list", () => api.users.list())
+  const [actionLoading, setActionLoading] = useState<string | null>(null)
+
+  const usersList = usersData?.users || (Array.isArray(usersData) ? usersData : [])
+  const pendingUsers = usersList.filter((u: any) => u.role === "pending")
+  const activeUsers = usersList.filter((u: any) => u.role !== "pending")
+
+  const isOwner = currentUser?.role === "owner"
+
+  async function handleApprove(id: string) {
+    setActionLoading(id + "-approve")
+    try {
+      await api.users.approve(id)
+      mutateUsers()
+    } catch (e: any) {
+      alert("Failed: " + e.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleReject(id: string) {
+    if (!confirm("Reject and remove this user?")) return
+    setActionLoading(id + "-reject")
+    try {
+      await api.users.reject(id)
+      mutateUsers()
+    } catch (e: any) {
+      alert("Failed: " + e.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleRoleChange(id: string, role: string) {
+    try {
+      await api.users.updateRole(id, role)
+      mutateUsers()
+    } catch (e: any) {
+      alert("Failed: " + e.message)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Permanently delete this user?")) return
+    setActionLoading(id + "-delete")
+    try {
+      await api.users.delete(id)
+      mutateUsers()
+    } catch (e: any) {
+      alert("Failed: " + e.message)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  if (isLoading) return <Skeleton className="h-48 w-full" />
+
+  const roleBadgeVariant = (role: string) => {
+    switch (role) {
+      case "owner": return "default"
+      case "admin": return "default"
+      case "member": return "secondary"
+      case "pending": return "outline"
+      case "viewer": return "secondary"
+      default: return "secondary"
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Pending Users */}
+      {pendingUsers.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-medium">Pending Approval</h3>
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+              {pendingUsers.length}
+            </Badge>
+          </div>
+          <Card className="border-amber-200 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-800">
+            <div className="divide-y">
+              {pendingUsers.map((u: any) => (
+                <div key={u.id} className="flex items-center justify-between p-4">
+                  <div className="flex items-center gap-3">
+                    {u.avatarUrl || u.avatar_url ? (
+                      <img src={u.avatarUrl || u.avatar_url} alt="" className="h-8 w-8 rounded-full" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+                        <User className="h-4 w-4" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-sm">{u.displayName || u.display_name || u.username}</p>
+                      <p className="text-xs text-muted-foreground">{u.email || u.username}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => handleApprove(u.id)}
+                      disabled={actionLoading === u.id + "-approve"}
+                      className="gap-1"
+                    >
+                      <Check className="h-3 w-3" /> Approve
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleReject(u.id)}
+                      disabled={actionLoading === u.id + "-reject"}
+                      className="gap-1"
+                    >
+                      <X className="h-3 w-3" /> Reject
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Active Team */}
+      <div className="space-y-3">
+        <h3 className="font-medium">Team Members</h3>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>User</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Joined</TableHead>
+                <TableHead />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activeUsers.map((u: any) => (
+                <TableRow key={u.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      {u.avatarUrl || u.avatar_url ? (
+                        <img src={u.avatarUrl || u.avatar_url} alt="" className="h-6 w-6 rounded-full" />
+                      ) : (
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted">
+                          <User className="h-3 w-3" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-sm">{u.displayName || u.display_name || u.username}</p>
+                        <p className="text-xs text-muted-foreground">{u.email || ""}</p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {isOwner && u.id !== currentUser?.id ? (
+                      <Select value={u.role} onValueChange={(v) => handleRoleChange(u.id, v)}>
+                        <SelectTrigger className="w-[110px] h-7 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="owner">Owner</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="member">Member</SelectItem>
+                          <SelectItem value="viewer">Viewer</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant={roleBadgeVariant(u.role)}>{u.role}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{u.title || "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{u.department || "—"}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {u.createdAt || u.created_at ? new Date(u.createdAt || u.created_at).toLocaleDateString() : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {isOwner && u.id !== currentUser?.id && (
+                      <Button variant="ghost" size="sm" onClick={() => handleDelete(u.id)} disabled={actionLoading === u.id + "-delete"}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {activeUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No team members found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      </div>
+    </div>
+  )
+}
+
 // ─── Main Settings Page ────────────────────────────────────
 export default function SettingsPage() {
   return (
@@ -590,6 +796,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="profile">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="sla-rules">SLA Rules</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
@@ -597,6 +804,10 @@ export default function SettingsPage() {
 
         <TabsContent value="profile" className="mt-4">
           <ProfileTab />
+        </TabsContent>
+
+        <TabsContent value="team" className="mt-4">
+          <TeamTab />
         </TabsContent>
 
         <TabsContent value="api-keys" className="mt-4">

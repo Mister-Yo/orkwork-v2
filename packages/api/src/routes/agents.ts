@@ -19,6 +19,8 @@ const createAgentSchema = z.object({
   systemPrompt: z.string().min(1),
   capabilities: z.array(z.string()).optional().default([]),
   config: z.record(z.any()).optional().default({}),
+  department: z.string().max(100).optional(),
+  reportsTo: z.string().uuid().optional(),
 });
 
 const updateAgentSchema = z.object({
@@ -29,6 +31,8 @@ const updateAgentSchema = z.object({
   capabilities: z.array(z.string()).optional(),
   status: z.enum(['active', 'idle', 'error', 'disabled']).optional(),
   config: z.record(z.any()).optional(),
+  department: z.string().max(100).optional(),
+  reportsTo: z.string().uuid().nullable().optional(),
 });
 
 // GET /api/v2/agents - List all agents

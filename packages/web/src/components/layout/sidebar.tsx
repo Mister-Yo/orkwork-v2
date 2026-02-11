@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Menu,
   Scale,
+  Users,
   Settings,
   X,
 } from "lucide-react"
@@ -31,6 +32,11 @@ const navigation = [
     name: "Agents",
     href: "/agents",
     icon: Bot,
+  },
+  {
+    name: "Team",
+    href: "/team",
+    icon: Users,
   },
   {
     name: "Projects",

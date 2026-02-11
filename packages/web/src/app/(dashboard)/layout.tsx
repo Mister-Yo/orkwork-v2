@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter, usePathname } from "next/navigation"
 import { useUser } from "@/lib/auth"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
@@ -38,6 +39,20 @@ export default function DashboardLayout({
         </div>
       </div>
     )
+  }
+
+  const router = useRouter()
+  const pathname = usePathname()
+
+  // If user is pending, only allow the pending page
+  if (user && user.role === 'pending' && pathname !== '/pending') {
+    router.push('/pending')
+    return null
+  }
+
+  // If user is pending and on the pending page, show it without sidebar
+  if (user && user.role === 'pending' && pathname === '/pending') {
+    return <>{children}</>
   }
 
   // If there's an error or no user, the middleware should have redirected to login

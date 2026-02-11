@@ -1,94 +1,122 @@
 "use client"
 
-import { Activity, Bot, CheckSquare, DollarSign, Heart, TrendingUp } from "lucide-react"
+import { Bot, CheckSquare, DollarSign } from "lucide-react"
 import { HealthScore } from "@/components/dashboard/health-score"
 import { StatCard } from "@/components/dashboard/stat-card"
-import { DailyBrief } from "@/components/dashboard/daily-brief"
-import { DecisionsQueue } from "@/components/dashboard/decisions-queue"
 import { AgentStatus } from "@/components/dashboard/agent-status"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { ProjectHealth } from "@/components/dashboard/project-health"
-import { useHealth, useAgents, useTasks, useCostsSummary } from "@/hooks/use-api"
+import { useAgents, useProjects, useTasks } from "@/hooks/use-api"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function DashboardStats() {
-  const { data: health } = useHealth()
-  const { data: agents } = useAgents()
-  const { data: tasks } = useTasks()
-  const { data: costs } = useCostsSummary()
+  const { data: agents, isLoading: agentsLoading } = useAgents()
+  const { data: tasks, isLoading: tasksLoading } = useTasks()
 
-  // Calculate derived metrics
-  const activeAgents = agents?.filter(agent => agent.status === 'active').length || 0
-  const tasksToday = tasks?.filter(task => {
-    const today = new Date().toDateString()
-    return new Date(task.createdAt).toDateString() === today
-  }).length || 0
-  
-  const systemHealth = health?.services ? 
-    health.services.reduce((total, service) => {
-      const score = service.status === 'healthy' ? 100 : service.status === 'degraded' ? 60 : 0
-      return total + score
-    }, 0) / health.services.length : 75
+  const agentsList = Array.isArray(agents) ? agents : []
+  const tasksList = Array.isArray(tasks) ? tasks : []
 
-  const budgetSpent = costs?.current?.monthly || 0
-  const budgetChange = costs?.trends?.[0]?.change || 0
+  const activeAgents = agentsList.filter((a: any) => a.status === 'active' || a.status === 'idle').length
+  const completedTasks = tasksList.filter((t: any) => t.status === 'completed').length
+  const inProgressTasks = tasksList.filter((t: any) => t.status === 'in_progress' || t.status === 'assigned').length
+  const totalTasks = tasksList.length
+
+  if (agentsLoading || tasksLoading) {
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-32 w-full rounded-xl" />
+        ))}
+      </div>
+    )
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {/* System Health */}
       <div className="flex flex-col items-center justify-center p-6 rounded-xl border bg-card">
         <HealthScore 
-          score={systemHealth} 
+          score={totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0} 
           size="lg" 
           showLabel={true}
         />
-        <p className="text-sm font-medium mt-2">System Health</p>
+        <p className="text-sm font-medium mt-2">Task Completion</p>
       </div>
 
-      {/* Budget Status */}
       <StatCard
-        title="Monthly Budget"
-        value={`$${budgetSpent.toLocaleString()}`}
-        icon={DollarSign}
-        change={{
-          value: budgetChange,
-          period: "last month"
-        }}
-        trend={budgetChange > 0 ? "up" : budgetChange < 0 ? "down" : "neutral"}
+        title="In Progress"
+        value={inProgressTasks}
+        icon={CheckSquare}
+        subtitle={`${totalTasks} total tasks`}
       />
 
-      {/* Active Agents */}
       <StatCard
         title="Active Agents"
         value={activeAgents}
         icon={Bot}
-        subtitle={`${agents?.length || 0} total agents`}
-        change={{
-          value: 12,
-          period: "last week"
-        }}
-        trend="up"
+        subtitle={`${agentsList.length} total agents`}
       />
 
-      {/* Tasks Today */}
       <StatCard
-        title="Tasks Today"
-        value={tasksToday}
-        icon={CheckSquare}
-        subtitle="New tasks created"
-        change={{
-          value: 8,
-          period: "yesterday"
-        }}
-        trend="up"
+        title="Completed"
+        value={completedTasks}
+        icon={DollarSign}
+        subtitle={`${totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}% done`}
       />
     </div>
+  )
+}
+
+function RecentTasks() {
+  const { data: tasks, isLoading } = useTasks()
+  const tasksList = Array.isArray(tasks) ? tasks.slice(0, 8) : []
+
+  if (isLoading) return <Skeleton className="h-64 w-full rounded-xl" />
+
+  const statusColors: Record<string, string> = {
+    completed: 'bg-emerald-500',
+    in_progress: 'bg-blue-500',
+    assigned: 'bg-amber-500',
+    blocked: 'bg-red-500',
+    created: 'bg-gray-400',
+    ready: 'bg-cyan-500',
+    review: 'bg-purple-500',
+    cancelled: 'bg-gray-300',
+    planning: 'bg-indigo-400',
+    rejected: 'bg-red-400',
+    escalated: 'bg-orange-500',
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">Recent Tasks</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {tasksList.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No tasks yet</p>
+        ) : (
+          <div className="space-y-3">
+            {tasksList.map((task: any) => (
+              <div key={task.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusColors[task.status] || 'bg-gray-400'}`} />
+                  <span className="text-sm truncate">{task.title}</span>
+                </div>
+                <span className="text-xs text-muted-foreground capitalize flex-shrink-0 ml-2">
+                  {task.status?.replace('_', ' ')}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
 export default function DashboardPage() {
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
@@ -96,30 +124,13 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Top Stats Grid */}
       <DashboardStats />
 
-      {/* Daily Brief - Full Width */}
-      <DailyBrief />
-
-      {/* Main Content Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Decisions Queue */}
-        <DecisionsQueue />
-
-        {/* Activity Feed */}
-        <ActivityFeed />
-
-        {/* Placeholder for additional component */}
-        <div className="space-y-6">
-          {/* You could add another component here, or extend one of the existing ones */}
-        </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <RecentTasks />
+        <AgentStatus />
       </div>
 
-      {/* Agent Status - Full Width */}
-      <AgentStatus />
-
-      {/* Project Health - Full Width */}
       <ProjectHealth />
     </div>
   )

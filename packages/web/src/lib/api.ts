@@ -11,7 +11,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   });
   
   if (res.status === 401) {
-    window.location.href = '/login';
+    if (typeof window !== 'undefined') window.location.href = '/login';
     throw new Error('Unauthorized');
   }
   
@@ -20,7 +20,13 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     throw new Error(err.error || 'API Error');
   }
   
-  return res.json();
+  const json = await res.json();
+  // API wraps responses in {data: ...} or {user: ...} — unwrap
+  if (json && typeof json === 'object' && !Array.isArray(json)) {
+    if ('data' in json) return json.data;
+    if ('user' in json) return json.user;
+  }
+  return json;
 }
 
 export const api = {

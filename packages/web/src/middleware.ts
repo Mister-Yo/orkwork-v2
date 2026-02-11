@@ -16,7 +16,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for session token in cookies
-  const sessionToken = request.cookies.get('session-token')?.value
+  const sessionToken = request.cookies.get('session_token')?.value
   
   // If no session token and not on login page, redirect to login
   if (!sessionToken && pathname !== '/login') {

@@ -9,6 +9,7 @@ import { authMiddleware } from './auth/middleware';
 // Import route handlers
 import authRoutes from './auth/github';
 import agentRoutes from './routes/agents';
+import apiKeyRoutes from './routes/api-keys';
 import userRoutes from './routes/users';
 import projectRoutes from './routes/projects';
 import taskRoutes from './routes/tasks';
@@ -80,6 +81,8 @@ app.get('/api', (c) => {
       },
       v2: {
         agents: '/api/v2/agents',
+        'agent-keys': '/api/v2/agents/:agentId/keys',
+        scopes: '/api/v2/agents/scopes',
         users: '/api/v2/users',
         projects: '/api/v2/projects',
         tasks: '/api/v2/tasks',
@@ -94,6 +97,7 @@ app.route('/api/auth', authRoutes);
 
 // API v2 routes
 app.route('/api/v2/agents', agentRoutes);
+app.route('/api/v2/agents', apiKeyRoutes); // Mount API key routes under agents path
 app.route('/api/v2/users', userRoutes);
 app.route('/api/v2/projects', projectRoutes);
 app.route('/api/v2/tasks', taskRoutes);

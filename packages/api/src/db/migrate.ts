@@ -308,6 +308,22 @@ async function runMigrations() {
       )
     `);
 
+    await db.execute(drizzleSql`
+      CREATE TABLE IF NOT EXISTS api_keys (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        agent_id UUID NOT NULL REFERENCES agents(id) ON DELETE CASCADE,
+        name VARCHAR(255) NOT NULL,
+        key_hash VARCHAR(64) NOT NULL UNIQUE,
+        key_prefix VARCHAR(8) NOT NULL,
+        scopes TEXT[] NOT NULL DEFAULT '{}',
+        expires_at TIMESTAMP,
+        last_used_at TIMESTAMP,
+        created_by UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
     // ALTER existing tables to add new columns (idempotent)
     console.log('📋 Altering existing tables...');
     const alterStatements = [
@@ -415,6 +431,14 @@ async function runMigrations() {
       `CREATE INDEX IF NOT EXISTS chat_messages_author_idx ON chat_messages(author_type, author_id)`,
       `CREATE INDEX IF NOT EXISTS chat_messages_reply_to_idx ON chat_messages(reply_to)`,
       `CREATE INDEX IF NOT EXISTS chat_messages_created_at_idx ON chat_messages(created_at)`,
+      
+      // API keys indexes
+      `CREATE INDEX IF NOT EXISTS api_keys_agent_id_idx ON api_keys(agent_id)`,
+      `CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON api_keys(key_hash)`,
+      `CREATE INDEX IF NOT EXISTS api_keys_key_prefix_idx ON api_keys(key_prefix)`,
+      `CREATE INDEX IF NOT EXISTS api_keys_is_active_idx ON api_keys(is_active)`,
+      `CREATE INDEX IF NOT EXISTS api_keys_created_by_idx ON api_keys(created_by)`,
+      `CREATE INDEX IF NOT EXISTS api_keys_expires_at_idx ON api_keys(expires_at)`,
     ];
     for (const idx of indexes) {
       await db.execute(drizzleSql.raw(idx));

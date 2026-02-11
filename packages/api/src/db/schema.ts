@@ -341,6 +341,27 @@ export const chatMessages = pgTable('chat_messages', {
   createdAtIdx: index('chat_messages_created_at_idx').on(table.createdAt),
 }));
 
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  agentId: uuid('agent_id').notNull().references(() => agents.id, { onDelete: 'cascade' }),
+  name: varchar('name', { length: 255 }).notNull(),
+  keyHash: varchar('key_hash', { length: 64 }).notNull().unique(),
+  keyPrefix: varchar('key_prefix', { length: 8 }).notNull(),
+  scopes: text('scopes').array().notNull().default([]),
+  expiresAt: timestamp('expires_at'),
+  lastUsedAt: timestamp('last_used_at'),
+  createdBy: uuid('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  agentIdIdx: index('api_keys_agent_id_idx').on(table.agentId),
+  keyHashIdx: index('api_keys_key_hash_idx').on(table.keyHash),
+  keyPrefixIdx: index('api_keys_key_prefix_idx').on(table.keyPrefix),
+  isActiveIdx: index('api_keys_is_active_idx').on(table.isActive),
+  createdByIdx: index('api_keys_created_by_idx').on(table.createdBy),
+  expiresAtIdx: index('api_keys_expires_at_idx').on(table.expiresAt),
+}));
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
@@ -352,6 +373,7 @@ export const agentsRelations = relations(agents, ({ one, many }) => ({
   costEntries: many(costEntries),
   memory: many(agentMemory),
   executions: many(taskExecutions),
+  apiKeys: many(apiKeys),
   slaRule: one(slaRules, {
     fields: [agents.slaRuleId],
     references: [slaRules.id],
@@ -494,6 +516,17 @@ export const chatMessagesRelations = relations(chatMessages, ({ one }) => ({
   }),
 }));
 
+export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
+  agent: one(agents, {
+    fields: [apiKeys.agentId],
+    references: [agents.id],
+  }),
+  createdBy: one(users, {
+    fields: [apiKeys.createdBy],
+    references: [users.id],
+  }),
+}));
+
 // Types for use in application
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -533,3 +566,5 @@ export type ChatChannel = typeof chatChannels.$inferSelect;
 export type NewChatChannel = typeof chatChannels.$inferInsert;
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type NewChatMessage = typeof chatMessages.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;

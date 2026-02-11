@@ -3,7 +3,7 @@
 
 import { eq, lt, and, sql } from 'drizzle-orm';
 import { db, sessions, agentMemory, agents, costEntries } from '../db';
-import { checkSLAViolations } from './sla';
+import { checkSLAs } from './sla';
 
 interface JobDefinition {
   name: string;
@@ -146,7 +146,7 @@ export const scheduler = new JobScheduler();
 async function runSLAChecker(): Promise<void> {
   try {
     console.log('[SLAChecker] Checking for SLA violations...');
-    await checkSLAViolations();
+    await checkSLAs();
   } catch (error) {
     console.error('[SLAChecker] Error checking SLA violations:', error);
     throw error;

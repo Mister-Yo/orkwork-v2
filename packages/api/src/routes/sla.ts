@@ -157,164 +157,6 @@ app.post('/', requireRole('admin'), async (c) => {
 });
 
 // GET /api/v2/sla/:id - Get specific SLA rule
-app.get('/:id', requireAuth, async (c) => {
-  try {
-    const id = c.req.param('id');
-
-    if (!id) {
-      return c.json({ error: 'SLA rule ID is required' }, 400);
-    }
-
-    const [rule] = await db
-      .select()
-      .from(slaRules)
-      .where(eq(slaRules.id, id))
-      .limit(1);
-
-    if (!rule) {
-      return c.json({ error: 'SLA rule not found' }, 404);
-    }
-
-    return c.json({ data: rule });
-  } catch (error) {
-    console.error('Error fetching SLA rule:', error);
-    return c.json({ error: 'Failed to fetch SLA rule' }, 500);
-  }
-});
-
-// PATCH /api/v2/sla/:id - Update SLA rule (admin+)
-app.patch('/:id', requireRole('admin'), async (c) => {
-  try {
-    const id = c.req.param('id');
-    const body = await c.req.json();
-
-    if (!id) {
-      return c.json({ error: 'SLA rule ID is required' }, 400);
-    }
-
-    const validatedData = updateSlaRuleSchema.parse(body);
-
-    // Check if rule exists
-    const [existingRule] = await db
-      .select()
-      .from(slaRules)
-      .where(eq(slaRules.id, id))
-      .limit(1);
-
-    if (!existingRule) {
-      return c.json({ error: 'SLA rule not found' }, 404);
-    }
-
-    // Validate escalation chain if provided
-    if (validatedData.escalationChain) {
-      const escalationValidation = validateEscalationChain(validatedData.escalationChain);
-      if (!escalationValidation.isValid) {
-        return c.json({
-          error: 'Invalid escalation chain',
-          issues: escalationValidation.errors,
-        }, 400);
-      }
-    }
-
-    // Check for duplicate names if name is being changed
-    if (validatedData.name && validatedData.name !== existingRule.name) {
-      const [duplicateRule] = await db
-        .select()
-        .from(slaRules)
-        .where(eq(slaRules.name, validatedData.name))
-        .limit(1);
-
-      if (duplicateRule) {
-        return c.json({ 
-          error: 'SLA rule with this name already exists',
-          name: validatedData.name,
-        }, 409);
-      }
-    }
-
-    // Update SLA rule
-    const [updatedRule] = await db
-      .update(slaRules)
-      .set(validatedData)
-      .where(eq(slaRules.id, id))
-      .returning();
-
-    // Log the update
-    await logAuditEntry({
-      actorId: getAuthUser(c).id,
-      actorType: 'user',
-      action: 'update',
-      resourceType: 'sla_rule',
-      resourceId: id,
-      details: {
-        updatedFields: Object.keys(validatedData),
-      },
-    });
-
-    return c.json({ data: updatedRule });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return c.json({
-        error: 'Validation failed',
-        issues: error.issues,
-      }, 400);
-    }
-
-    console.error('Error updating SLA rule:', error);
-    return c.json({ error: 'Failed to update SLA rule' }, 500);
-  }
-});
-
-// DELETE /api/v2/sla/:id - Deactivate SLA rule (admin+)
-app.delete('/:id', requireRole('admin'), async (c) => {
-  try {
-    const id = c.req.param('id');
-
-    if (!id) {
-      return c.json({ error: 'SLA rule ID is required' }, 400);
-    }
-
-    // Check if rule exists
-    const [existingRule] = await db
-      .select()
-      .from(slaRules)
-      .where(eq(slaRules.id, id))
-      .limit(1);
-
-    if (!existingRule) {
-      return c.json({ error: 'SLA rule not found' }, 404);
-    }
-
-    // Soft delete by setting isActive to false
-    const [deactivatedRule] = await db
-      .update(slaRules)
-      .set({ isActive: false })
-      .where(eq(slaRules.id, id))
-      .returning();
-
-    // Log the deactivation
-    await logAuditEntry({
-      actorId: getAuthUser(c).id,
-      actorType: 'user',
-      action: 'deactivate',
-      resourceType: 'sla_rule',
-      resourceId: id,
-      details: {
-        name: existingRule.name,
-      },
-    });
-
-    return c.json({ 
-      data: deactivatedRule,
-      message: 'SLA rule deactivated successfully' 
-    });
-  } catch (error) {
-    console.error('Error deactivating SLA rule:', error);
-    return c.json({ error: 'Failed to deactivate SLA rule' }, 500);
-  }
-});
-
-// GET /api/v2/sla/violations - Get current SLA violations
 app.get('/violations', requireAuth, async (c) => {
   try {
     const violations = await getCurrentSlaViolations();
@@ -477,4 +319,162 @@ function getViolationSeverity(overdueMinutes: number): 'low' | 'medium' | 'high'
   return 'low';
 }
 
+app.get('/:id', requireAuth, async (c) => {
+  try {
+    const id = c.req.param('id');
+
+    if (!id) {
+      return c.json({ error: 'SLA rule ID is required' }, 400);
+    }
+
+    const [rule] = await db
+      .select()
+      .from(slaRules)
+      .where(eq(slaRules.id, id))
+      .limit(1);
+
+    if (!rule) {
+      return c.json({ error: 'SLA rule not found' }, 404);
+    }
+
+    return c.json({ data: rule });
+  } catch (error) {
+    console.error('Error fetching SLA rule:', error);
+    return c.json({ error: 'Failed to fetch SLA rule' }, 500);
+  }
+});
+
+// PATCH /api/v2/sla/:id - Update SLA rule (admin+)
+app.patch('/:id', requireRole('admin'), async (c) => {
+  try {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+
+    if (!id) {
+      return c.json({ error: 'SLA rule ID is required' }, 400);
+    }
+
+    const validatedData = updateSlaRuleSchema.parse(body);
+
+    // Check if rule exists
+    const [existingRule] = await db
+      .select()
+      .from(slaRules)
+      .where(eq(slaRules.id, id))
+      .limit(1);
+
+    if (!existingRule) {
+      return c.json({ error: 'SLA rule not found' }, 404);
+    }
+
+    // Validate escalation chain if provided
+    if (validatedData.escalationChain) {
+      const escalationValidation = validateEscalationChain(validatedData.escalationChain);
+      if (!escalationValidation.isValid) {
+        return c.json({
+          error: 'Invalid escalation chain',
+          issues: escalationValidation.errors,
+        }, 400);
+      }
+    }
+
+    // Check for duplicate names if name is being changed
+    if (validatedData.name && validatedData.name !== existingRule.name) {
+      const [duplicateRule] = await db
+        .select()
+        .from(slaRules)
+        .where(eq(slaRules.name, validatedData.name))
+        .limit(1);
+
+      if (duplicateRule) {
+        return c.json({ 
+          error: 'SLA rule with this name already exists',
+          name: validatedData.name,
+        }, 409);
+      }
+    }
+
+    // Update SLA rule
+    const [updatedRule] = await db
+      .update(slaRules)
+      .set(validatedData)
+      .where(eq(slaRules.id, id))
+      .returning();
+
+    // Log the update
+    await logAuditEntry({
+      actorId: getAuthUser(c).id,
+      actorType: 'user',
+      action: 'update',
+      resourceType: 'sla_rule',
+      resourceId: id,
+      details: {
+        updatedFields: Object.keys(validatedData),
+      },
+    });
+
+    return c.json({ data: updatedRule });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return c.json({
+        error: 'Validation failed',
+        issues: error.issues,
+      }, 400);
+    }
+
+    console.error('Error updating SLA rule:', error);
+    return c.json({ error: 'Failed to update SLA rule' }, 500);
+  }
+});
+
+// DELETE /api/v2/sla/:id - Deactivate SLA rule (admin+)
+app.delete('/:id', requireRole('admin'), async (c) => {
+  try {
+    const id = c.req.param('id');
+
+    if (!id) {
+      return c.json({ error: 'SLA rule ID is required' }, 400);
+    }
+
+    // Check if rule exists
+    const [existingRule] = await db
+      .select()
+      .from(slaRules)
+      .where(eq(slaRules.id, id))
+      .limit(1);
+
+    if (!existingRule) {
+      return c.json({ error: 'SLA rule not found' }, 404);
+    }
+
+    // Soft delete by setting isActive to false
+    const [deactivatedRule] = await db
+      .update(slaRules)
+      .set({ isActive: false })
+      .where(eq(slaRules.id, id))
+      .returning();
+
+    // Log the deactivation
+    await logAuditEntry({
+      actorId: getAuthUser(c).id,
+      actorType: 'user',
+      action: 'deactivate',
+      resourceType: 'sla_rule',
+      resourceId: id,
+      details: {
+        name: existingRule.name,
+      },
+    });
+
+    return c.json({ 
+      data: deactivatedRule,
+      message: 'SLA rule deactivated successfully' 
+    });
+  } catch (error) {
+    console.error('Error deactivating SLA rule:', error);
+    return c.json({ error: 'Failed to deactivate SLA rule' }, 500);
+  }
+});
+
+// GET /api/v2/sla/violations - Get current SLA violations
 export default app;

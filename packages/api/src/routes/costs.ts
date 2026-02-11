@@ -41,7 +41,7 @@ const listCostsSchema = z.object({
 });
 
 const summarySchema = z.object({
-  group_by: z.enum(['agent', 'project', 'model', 'day', 'week', 'month']),
+  group_by: z.enum(["agent", "project", "model", "day", "week", "month"]).optional().default("day"),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 });

@@ -167,14 +167,14 @@ export default function AgentDetailPage() {
       </div>
 
       {/* System Prompt */}
-      {a.system_prompt && (
+      {(a.system_prompt || a.systemPrompt) && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">System Prompt</CardTitle>
           </CardHeader>
           <CardContent>
             <pre className="text-sm whitespace-pre-wrap bg-muted p-4 rounded-lg max-h-48 overflow-auto">
-              {a.system_prompt}
+              {a.system_prompt || a.systemPrompt}
             </pre>
           </CardContent>
         </Card>

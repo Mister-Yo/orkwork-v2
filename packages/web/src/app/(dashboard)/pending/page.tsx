@@ -21,7 +21,7 @@ export default function PendingPage() {
           <div className="flex justify-center">
             <div className="relative">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={user?.avatar_url || user?.avatar} alt={user?.name || user?.display_name || "User"} />
+                <AvatarImage src={user?.avatarUrl || user?.avatar_url || user?.avatar} alt={user?.displayName || user?.display_name || user?.name || "User"} />
                 <AvatarFallback className="text-xl">{getInitials(user?.name || user?.display_name)}</AvatarFallback>
               </Avatar>
               <div className="absolute -bottom-1 -right-1 bg-amber-100 dark:bg-amber-900 rounded-full p-1.5">
@@ -33,7 +33,7 @@ export default function PendingPage() {
           <div className="space-y-2">
             <h1 className="text-2xl font-bold tracking-tight">Account Pending Approval</h1>
             <p className="text-muted-foreground">
-              Welcome, <span className="font-medium text-foreground">{user?.name || user?.display_name || "there"}</span>!
+              Welcome, <span className="font-medium text-foreground">{user?.displayName || user?.display_name || user?.name || "there"}</span>!
               Your account is awaiting admin approval. You&apos;ll be able to access the platform once approved.
             </p>
           </div>

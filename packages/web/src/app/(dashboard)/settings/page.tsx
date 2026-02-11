@@ -55,20 +55,20 @@ function ProfileTab() {
   if (!user) return <p className="text-muted-foreground">Not logged in.</p>
 
   const fields = [
-    { label: "Name", value: user.name || user.display_name || "—" },
+    { label: "Name", value: user.displayName || user.display_name || user.name || "—" },
     { label: "Email", value: user.email || "—" },
     { label: "Role", value: user.role || "—" },
-    { label: "GitHub", value: user.github_username || "—" },
-    { label: "Created", value: user.created_at ? new Date(user.created_at).toLocaleDateString() : "—" },
+    { label: "GitHub", value: user.username || user.github_username || "—" },
+    { label: "Created", value: user.createdAt || user.created_at ? new Date(user.createdAt || user.created_at).toLocaleDateString() : "—" },
   ]
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center gap-4">
-          {user.avatar_url || user.avatar ? (
+          {user.avatarUrl || user.avatar_url || user.avatar ? (
             <img
-              src={user.avatar_url || user.avatar}
+              src={user.avatarUrl || user.avatar_url || user.avatar}
               alt="Avatar"
               className="h-16 w-16 rounded-full border"
             />
@@ -78,7 +78,7 @@ function ProfileTab() {
             </div>
           )}
           <div>
-            <CardTitle>{user.name || user.display_name || "User"}</CardTitle>
+            <CardTitle>{user.displayName || user.display_name || user.name || "User"}</CardTitle>
             <CardDescription>{user.email}</CardDescription>
           </div>
         </div>
@@ -511,58 +511,58 @@ function SystemTab() {
           <Skeleton className="h-32 w-full" />
         ) : auditStats ? (
           <div className="grid gap-4 sm:grid-cols-3">
-            {auditStats.byAction && (
+            {(auditStats.byAction || auditStats.by_action) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">By Action</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-1">
-                    {Object.entries(auditStats.byAction).map(([action, count]: [string, any]) => (
-                      <div key={action} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{action}</span>
-                        <span className="font-medium">{count}</span>
+                    {(auditStats.byAction || auditStats.by_action || []).map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{item.action || item.key || Object.values(item)[0]}</span>
+                        <span className="font-medium">{item.count ?? Object.values(item)[1]}</span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             )}
-            {auditStats.byResource && (
+            {(auditStats.byResourceType || auditStats.byResource || auditStats.by_resource_type) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">By Resource</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-1">
-                    {Object.entries(auditStats.byResource).map(([resource, count]: [string, any]) => (
-                      <div key={resource} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{resource}</span>
-                        <span className="font-medium">{count}</span>
+                    {(auditStats.byResourceType || auditStats.byResource || auditStats.by_resource_type || []).map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{item.resourceType || item.resource_type || item.key || Object.values(item)[0]}</span>
+                        <span className="font-medium">{item.count ?? Object.values(item)[1]}</span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             )}
-            {auditStats.byActor && (
+            {(auditStats.byActorType || auditStats.byActor || auditStats.by_actor_type) && (
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm">By Actor</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-1">
-                    {Object.entries(auditStats.byActor).map(([actor, count]: [string, any]) => (
-                      <div key={actor} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{actor}</span>
-                        <span className="font-medium">{count}</span>
+                    {(auditStats.byActorType || auditStats.byActor || auditStats.by_actor_type || []).map((item: any, i: number) => (
+                      <div key={i} className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{item.actorType || item.actor_type || item.key || Object.values(item)[0]}</span>
+                        <span className="font-medium">{item.count ?? Object.values(item)[1]}</span>
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
             )}
-            {!auditStats.byAction && !auditStats.byResource && !auditStats.byActor && (
+            {!auditStats.byAction && !auditStats.byResourceType && !auditStats.byActorType && !auditStats.by_action && (
               <Card className="sm:col-span-3">
                 <CardContent className="py-4">
                   <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(auditStats, null, 2)}</pre>

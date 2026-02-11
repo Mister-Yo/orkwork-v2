@@ -136,11 +136,11 @@ function SidebarContent({ className }: SidebarContentProps) {
       <div className="mt-auto border-t p-4 lg:p-6">
         <div className="flex items-center gap-3">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.avatar} alt={user?.name || "User"} />
-            <AvatarFallback>{getInitials(user?.name)}</AvatarFallback>
+            <AvatarImage src={user?.avatarUrl || user?.avatar} alt={user?.displayName || user?.name || "User"} />
+            <AvatarFallback>{getInitials(user?.displayName || user?.name)}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-1">
-            <p className="text-sm font-medium leading-none">{user?.name || "User"}</p>
+            <p className="text-sm font-medium leading-none">{user?.displayName || user?.name || "User"}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {user?.email || "user@example.com"}
             </p>

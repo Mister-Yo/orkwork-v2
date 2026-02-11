@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
 import { useIntelligenceBrief } from "@/hooks/use-api"
 import { cn } from "@/lib/utils"
 
-function StatRow({ icon: Icon, label, value }: { icon: any, label: string, value: number }) {
+function StatRow({ icon: Icon, label, value }: { icon: any, label: string, value: number | string }) {
   return (
     <div className="flex items-center justify-between p-2 rounded-lg bg-muted/40">
       <div className="flex items-center gap-2">
@@ -17,107 +16,6 @@ function StatRow({ icon: Icon, label, value }: { icon: any, label: string, value
         <span className="text-sm text-muted-foreground">{label}</span>
       </div>
       <span className="font-semibold">{value}</span>
-    </div>
-  )
-}
-
-function EventItem({ event }: { event: any }) {
-  const getImpactColor = (impact: string) => {
-    switch (impact) {
-      case "high":
-        return "text-red-500"
-      case "medium":
-        return "text-yellow-500"
-      default:
-        return "text-muted-foreground"
-    }
-  }
-
-  return (
-    <div className="space-y-1 p-2 rounded-lg hover:bg-muted/40 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-sm font-medium leading-snug">{event.description}</p>
-        <span className="text-xs text-muted-foreground whitespace-nowrap">
-          {new Date(event.timestamp).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
-        </span>
-      </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-xs px-2 py-0">
-          {event.type}
-        </Badge>
-        <span className={cn("text-xs", getImpactColor(event.impact))}>
-          {event.impact} impact
-        </span>
-      </div>
-    </div>
-  )
-}
-
-function RecommendationItem({ recommendation }: { recommendation: any }) {
-  const getPriorityVariant = (priority: string) => {
-    switch (priority) {
-      case "urgent":
-        return "destructive"
-      case "high":
-        return "default"
-      case "normal":
-        return "secondary"
-      default:
-        return "outline"
-    }
-  }
-
-  return (
-    <div className="space-y-2 p-2 rounded-lg hover:bg-muted/40 transition-colors">
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="text-sm font-medium leading-snug">{recommendation.title}</h4>
-        <Badge variant={getPriorityVariant(recommendation.priority)} className="text-xs">
-          {recommendation.priority}
-        </Badge>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {recommendation.description}
-      </p>
-    </div>
-  )
-}
-
-function RiskItem({ risk }: { risk: any }) {
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return "border-red-500 bg-red-50 dark:bg-red-950"
-      case "high":
-        return "border-orange-500 bg-orange-50 dark:bg-orange-950"
-      case "medium":
-        return "border-yellow-500 bg-yellow-50 dark:bg-yellow-950"
-      default:
-        return "border-gray-500 bg-gray-50 dark:bg-gray-950"
-    }
-  }
-
-  return (
-    <div className={cn(
-      "space-y-2 p-2 rounded-lg border transition-colors",
-      getSeverityColor(risk.severity)
-    )}>
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="text-sm font-medium leading-snug">{risk.title}</h4>
-        <div className="flex items-center gap-1">
-          <Badge variant="outline" className="text-xs">
-            {Math.round(risk.probability * 100)}%
-          </Badge>
-          <Badge variant="destructive" className="text-xs">
-            {risk.severity}
-          </Badge>
-        </div>
-      </div>
-      <p className="text-xs text-muted-foreground leading-relaxed">
-        {risk.description}
-      </p>
     </div>
   )
 }
@@ -143,7 +41,7 @@ export function DailyBrief() {
     )
   }
 
-  if (error) {
+  if (error || !brief) {
     return (
       <Card className="col-span-full">
         <CardHeader>
@@ -152,15 +50,64 @@ export function DailyBrief() {
         <CardContent>
           <div className="flex items-center gap-2 text-muted-foreground">
             <AlertTriangle className="h-4 w-4" />
-            <span>Failed to load daily brief</span>
+            <span>{error ? "Failed to load daily brief" : "No brief available"}</span>
           </div>
         </CardContent>
       </Card>
     )
   }
 
-  if (!brief) {
-    return null
+  // Handle both snake_case and camelCase API responses
+  const b: any = brief
+  const summary = b.summary || {}
+  const activeAgents = summary.activeAgents ?? summary.active_agents ?? 0
+  const completedTasks = summary.completedTasks ?? summary.tasks_completed_24h ?? 0
+  const pendingDecisions = summary.pendingDecisions ?? summary.decisions_pending ?? b.decisions_pending ?? 0
+  const systemHealth = summary.systemHealth ?? b.system_health ?? 0
+  const generatedAt = b.generatedAt ?? b.date ?? new Date().toISOString()
+
+  // Normalize events - API returns top_events: [{time, agent, event}]
+  const rawEvents = b.events || b.top_events || []
+  const events = rawEvents.map((e: any, i: number) => ({
+    id: e.id || `event-${i}`,
+    description: e.description || e.event || String(e),
+    timestamp: e.timestamp || e.time || generatedAt,
+    type: e.type || "activity",
+    impact: e.impact || "low",
+    agent: e.agent,
+  }))
+
+  // Normalize recommendations - API may return string[]
+  const rawRecs = b.recommendations || []
+  const recommendations = rawRecs.map((r: any, i: number) => {
+    if (typeof r === "string") {
+      return { id: `rec-${i}`, title: r, description: "", priority: "normal" }
+    }
+    return { id: r.id || `rec-${i}`, title: r.title || r.description || String(r), description: r.description || "", priority: r.priority || "normal" }
+  })
+
+  // Normalize risks - API returns [{level, description}]
+  const rawRisks = b.risks || []
+  const risks = rawRisks.map((r: any, i: number) => {
+    if (typeof r === "string") {
+      return { id: `risk-${i}`, title: r, description: "", severity: "medium", probability: 0.5 }
+    }
+    return {
+      id: r.id || `risk-${i}`,
+      title: r.title || r.description || String(r),
+      description: r.description || "",
+      severity: r.severity || r.level || "medium",
+      probability: r.probability ?? 0.5,
+    }
+  })
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case "critical": return "border-red-500 bg-red-50 dark:bg-red-950"
+      case "high": return "border-orange-500 bg-orange-50 dark:bg-orange-950"
+      case "medium": return "border-yellow-500 bg-yellow-50 dark:bg-yellow-950"
+      default: return "border-gray-500 bg-gray-50 dark:bg-gray-950"
+    }
   }
 
   return (
@@ -169,33 +116,17 @@ export function DailyBrief() {
         <div className="flex items-center justify-between">
           <CardTitle>Daily Brief</CardTitle>
           <span className="text-xs text-muted-foreground">
-            Generated {new Date(brief.generatedAt).toLocaleTimeString()}
+            {new Date(generatedAt).toLocaleDateString()}
           </span>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Summary Stats */}
         <div className="grid gap-2 md:grid-cols-4">
-          <StatRow 
-            icon={TrendingUp} 
-            label="Active Agents" 
-            value={brief.summary.activeAgents} 
-          />
-          <StatRow 
-            icon={CheckCircle} 
-            label="Tasks Completed" 
-            value={brief.summary.completedTasks} 
-          />
-          <StatRow 
-            icon={Clock} 
-            label="Pending Decisions" 
-            value={brief.summary.pendingDecisions} 
-          />
-          <StatRow 
-            icon={Calendar} 
-            label="System Health" 
-            value={brief.summary.systemHealth} 
-          />
+          <StatRow icon={TrendingUp} label="Active Agents" value={activeAgents} />
+          <StatRow icon={CheckCircle} label="Tasks Completed" value={completedTasks} />
+          <StatRow icon={Clock} label="Pending Decisions" value={pendingDecisions} />
+          <StatRow icon={Calendar} label="System Health" value={`${systemHealth}%`} />
         </div>
 
         <div className="grid gap-4 md:grid-cols-3">
@@ -207,10 +138,15 @@ export function DailyBrief() {
             </h3>
             <ScrollArea className="h-40">
               <div className="space-y-2">
-                {brief.events?.map((event) => (
-                  <EventItem key={event.id} event={event} />
-                ))}
-                {(!brief.events || brief.events.length === 0) && (
+                {events.length > 0 ? events.map((event: any) => (
+                  <div key={event.id} className="space-y-1 p-2 rounded-lg hover:bg-muted/40 transition-colors">
+                    <p className="text-sm leading-snug">{event.description}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {event.agent && <span>{event.agent}</span>}
+                      <span>{new Date(event.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  </div>
+                )) : (
                   <p className="text-xs text-muted-foreground p-2">No recent events</p>
                 )}
               </div>
@@ -225,10 +161,12 @@ export function DailyBrief() {
             </h3>
             <ScrollArea className="h-40">
               <div className="space-y-2">
-                {brief.recommendations?.map((rec) => (
-                  <RecommendationItem key={rec.id} recommendation={rec} />
-                ))}
-                {(!brief.recommendations || brief.recommendations.length === 0) && (
+                {recommendations.length > 0 ? recommendations.map((rec: any) => (
+                  <div key={rec.id} className="p-2 rounded-lg hover:bg-muted/40 transition-colors">
+                    <p className="text-sm leading-snug">{rec.title}</p>
+                    {rec.description && <p className="text-xs text-muted-foreground mt-1">{rec.description}</p>}
+                  </div>
+                )) : (
                   <p className="text-xs text-muted-foreground p-2">No recommendations</p>
                 )}
               </div>
@@ -243,10 +181,17 @@ export function DailyBrief() {
             </h3>
             <ScrollArea className="h-40">
               <div className="space-y-2">
-                {brief.risks?.map((risk) => (
-                  <RiskItem key={risk.id} risk={risk} />
-                ))}
-                {(!brief.risks || brief.risks.length === 0) && (
+                {risks.length > 0 ? risks.map((risk: any) => (
+                  <div key={risk.id} className={cn("p-2 rounded-lg border", getSeverityColor(risk.severity))}>
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium leading-snug">{risk.title}</p>
+                      <Badge variant="destructive" className="text-xs shrink-0">{risk.severity}</Badge>
+                    </div>
+                    {risk.description && risk.description !== risk.title && (
+                      <p className="text-xs text-muted-foreground mt-1">{risk.description}</p>
+                    )}
+                  </div>
+                )) : (
                   <p className="text-xs text-muted-foreground p-2">No identified risks</p>
                 )}
               </div>

@@ -104,8 +104,8 @@ export default function AgentsPage() {
                     <Progress value={Math.min((totalSpent / dailyBudget) * 100, 100)} className="h-1.5" />
                   </div>
                 )}
-                {agent.system_prompt && (
-                  <p className="text-xs text-muted-foreground line-clamp-2">{agent.system_prompt.substring(0, 100)}...</p>
+                {(agent.system_prompt || agent.systemPrompt) && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{(agent.system_prompt || agent.systemPrompt)?.substring(0, 100)}...</p>
                 )}
               </CardContent>
             </Card></Link>

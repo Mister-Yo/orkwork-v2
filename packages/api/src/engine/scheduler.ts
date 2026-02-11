@@ -243,8 +243,8 @@ async function runCostAggregation(): Promise<void> {
       .from(costEntries)
       .where(
         and(
-          sql`${costEntries.createdAt} >= ${yesterday}`,
-          sql`${costEntries.createdAt} < ${todayStart}`
+          sql`${costEntries.createdAt} >= ${yesterday.toISOString()}`,
+          sql`${costEntries.createdAt} < ${todayStart.toISOString()}`
         )
       )
       .groupBy(costEntries.agentId);

@@ -37,8 +37,8 @@ export function CreateProjectDialog() {
         name: name.trim(),
         description: description.trim() || undefined,
         priority,
-        budgetUsd: budgetUsd ? parseFloat(budgetUsd) : undefined,
-        deadline: deadline || undefined,
+        budgetUsd: budgetUsd ? Math.round(parseFloat(budgetUsd) * 100) : undefined,
+        deadline: deadline ? new Date(deadline).toISOString() : undefined,
         riskLevel: riskLevel,
       })
       await mutate("/v2/projects")

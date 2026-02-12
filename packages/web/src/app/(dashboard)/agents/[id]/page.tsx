@@ -3,7 +3,7 @@ import { formatCurrency } from "@/lib/utils/currency"
 
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
-import { ArrowLeft, Bot, Shield, Zap, Clock, DollarSign, Activity, Heart, Edit } from "lucide-react"
+import { ArrowLeft, Bot, Shield, Zap, Clock, DollarSign, Activity, Heart, Edit, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -86,9 +86,22 @@ export default function AgentDetailPage() {
           </div>
           <p className="text-muted-foreground capitalize">{a.type} agent • {model}</p>
         </div>
-        <Button variant="outline" onClick={() => { setEditPrompt(a.system_prompt || a.systemPrompt || ""); setIsEditing(true); }}>
-          <Edit className="h-4 w-4 mr-2" /> Edit
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => { setEditPrompt(a.system_prompt || a.systemPrompt || ""); setIsEditing(true); }}>
+            <Edit className="h-4 w-4 mr-2" /> Edit
+          </Button>
+          <Button variant="destructive" size="sm" onClick={async () => {
+            if (!confirm(`Delete agent "${name}"? This cannot be undone.`)) return;
+            try {
+              await api.agents.delete(id);
+              router.push('/agents');
+            } catch (e: any) {
+              alert(e.message || 'Failed to delete agent');
+            }
+          }}>
+            <Trash2 className="h-4 w-4 mr-2" /> Delete
+          </Button>
+        </div>
       </div>
 
       {/* Details Grid */}

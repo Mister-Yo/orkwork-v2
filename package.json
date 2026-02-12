@@ -1,7 +1,9 @@
 {
   "name": "orkwork-v2",
   "private": true,
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
     "build": "bun run --filter '*' build",
@@ -9,5 +11,8 @@
     "db:seed": "bun run --filter api db:seed",
     "lint": "bun run --filter '*' lint",
     "typecheck": "bun run --filter '*' typecheck"
+  },
+  "dependencies": {
+    "wc3ui": "^0.0.1"
   }
 }

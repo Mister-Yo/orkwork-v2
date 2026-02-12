@@ -421,6 +421,21 @@ export const webhookLogs = pgTable('webhook_logs', {
 }));
 
 // Relations
+
+export const taskComments = pgTable('task_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  taskId: uuid('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  authorId: uuid('author_id').notNull(),
+  authorType: authorTypeEnum('author_type').notNull().default('user'),
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  taskIdIdx: index('task_comments_task_id_idx').on(table.taskId),
+}));
+
+export type TaskComment = typeof taskComments.$inferSelect;
+export type NewTaskComment = typeof taskComments.$inferInsert;
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   assignedTasks: many(tasks, { relationName: 'assignee' }),

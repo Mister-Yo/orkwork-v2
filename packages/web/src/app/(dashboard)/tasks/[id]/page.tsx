@@ -1,14 +1,17 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, Bot, CheckSquare, Clock, Calendar, User, FolderKanban, RefreshCw } from "lucide-react"
+import { useState } from "react"
+import { ArrowLeft, Bot, CheckSquare, Clock, Calendar, User, FolderKanban, RefreshCw, MessageSquare, Send, Trash2 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Textarea } from "@/components/ui/textarea"
 import { useTask, useAgents } from "@/hooks/use-api"
-import { api } from "@/lib/api"
-import { mutate } from "swr"
+import { api, apiFetch } from "@/lib/api"
+import useSWR, { mutate } from "swr"
 import {
   Select,
   SelectContent,
@@ -50,14 +53,60 @@ const statusTransitions: Record<string, string[]> = {
   escalated: ['in_progress', 'cancelled'],
 }
 
+function timeAgo(date: string) {
+  const s = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+  if (s < 60) return 'just now'
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  return `${Math.floor(s / 86400)}d ago`
+}
+
+function useComments(taskId: string) {
+  return useSWR<any[]>(
+    taskId ? `/v2/tasks/${taskId}/comments` : null,
+    () => apiFetch<any[]>(`/v2/tasks/${taskId}/comments`),
+    { refreshInterval: 15000 }
+  )
+}
+
 export default function TaskDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+  const [comment, setComment] = useState("")
+  const [posting, setPosting] = useState(false)
 
   const { data: task, isLoading } = useTask(id)
   const { data: agentsData } = useAgents()
+  const { data: commentsData } = useComments(id)
   const agentsList = (agentsData as any)?.agents || (Array.isArray(agentsData) ? agentsData : [])
+  const comments = Array.isArray(commentsData) ? commentsData : []
+
+  async function postComment() {
+    if (!comment.trim()) return
+    setPosting(true)
+    try {
+      await apiFetch(`/v2/tasks/${id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: comment.trim() }),
+      })
+      setComment("")
+      mutate(`/v2/tasks/${id}/comments`)
+    } catch (e) {
+      console.error('Failed to post comment:', e)
+    }
+    setPosting(false)
+  }
+
+  async function deleteComment(commentId: string) {
+    try {
+      await apiFetch(`/v2/tasks/${id}/comments/${commentId}`, { method: 'DELETE' })
+      mutate(`/v2/tasks/${id}/comments`)
+    } catch (e) {
+      console.error('Failed to delete comment:', e)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -257,6 +306,76 @@ export default function TaskDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Comments */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" /> Comments
+            <Badge variant="secondary">{comments.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Comment list */}
+          {comments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((c: any) => (
+                <div key={c.id} className="flex gap-3 group">
+                  <Avatar className="h-8 w-8 flex-shrink-0">
+                    <AvatarImage src={c.author_avatar || c.authorAvatar || undefined} />
+                    <AvatarFallback className="text-xs">
+                      {c.author_type === 'agent' ? '🤖' : (c.author_name || c.authorName || '?')[0]?.toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{c.author_name || c.authorName || 'Unknown'}</span>
+                      {c.author_type === 'agent' && (
+                        <Badge variant="outline" className="text-[10px] px-1 py-0"><Bot className="h-2.5 w-2.5" /></Badge>
+                      )}
+                      <span className="text-xs text-muted-foreground">{timeAgo(c.created_at || c.createdAt)}</span>
+                      <button
+                        onClick={() => deleteComment(c.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity ml-auto text-muted-foreground hover:text-red-500"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{c.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* New comment form */}
+          <div className="flex gap-3 pt-4 border-t">
+            <Textarea
+              placeholder="Write a comment..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="min-h-[80px] resize-none"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault()
+                  postComment()
+                }
+              }}
+            />
+            <Button
+              size="icon"
+              className="flex-shrink-0 self-end"
+              onClick={postComment}
+              disabled={!comment.trim() || posting}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Ctrl+Enter to send</p>
+        </CardContent>
+      </Card>
     </div>
   )
 }

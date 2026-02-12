@@ -13,6 +13,7 @@ import apiKeyRoutes from './routes/api-keys';
 import userRoutes from './routes/users';
 import projectRoutes from './routes/projects';
 import taskRoutes from './routes/tasks';
+import taskCommentRoutes from './routes/task-comments';
 import auditRoutes from './routes/audit';
 import healthRoutes from './routes/health';
 import slaRoutes from './routes/sla';
@@ -165,6 +166,7 @@ app.route('/api/v2/tools', toolRoutes); // Also mount tools at root level
 app.route('/api/v2/users', userRoutes);
 app.route('/api/v2/projects', projectRoutes);
 app.route('/api/v2/tasks', taskRoutes);
+app.route('/api/v2/tasks', taskCommentRoutes);
 app.route('/api/v2/audit', auditRoutes);
 app.route('/api/v2/sla', slaRoutes);
 app.route('/api/v2/workflows', workflowRoutes);

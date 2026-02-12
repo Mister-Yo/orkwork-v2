@@ -1,4 +1,5 @@
 "use client"
+import { SearchModal } from "@/components/search-modal"
 
 import { useRouter, usePathname } from "next/navigation"
 import { useUser } from "@/lib/auth"
@@ -77,6 +78,7 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <Header />
+            <SearchModal />
         
         {/* Page Content */}
         <main className="flex-1 overflow-auto">

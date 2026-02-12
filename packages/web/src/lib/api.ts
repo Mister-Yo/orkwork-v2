@@ -35,7 +35,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
     if ('data' in json) return json.data;
     if ('user' in json) return json.user;
     // List envelopes: {agents: [...], pagination}, {projects: [...], pagination}, etc.
-    const listKeys = ['agents', 'projects', 'tasks', 'decisions', 'users', 'entries', 'rules', 'keys', 'workflows', 'channels', 'messages'];
+    const listKeys = ['agents', 'projects', 'tasks', 'decisions', 'users', 'entries', 'rules', 'keys', 'workflows', 'channels', 'messages', 'notifications'];
     for (const key of listKeys) {
       if (key in json && Array.isArray(json[key])) return json[key] as T;
     }
@@ -162,6 +162,20 @@ export const api = {
   },
 
   // Audit
+  // Notifications
+  notifications: {
+    list: (params?: { status?: string; limit?: number }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set("status", params.status);
+      if (params?.limit) q.set("limit", String(params.limit));
+      const qs = q.toString();
+      return apiFetch<any[]>("/v2/notifications" + (qs ? "?" + qs : ""));
+    },
+    unreadCount: () => apiFetch<{ count: number }>("/v2/notifications/unread-count"),
+    markRead: (id: string) => apiFetch<any>("/v2/notifications/" + id + "/read", { method: "POST" }),
+    markAllRead: () => apiFetch<any>("/v2/notifications/read-all", { method: "POST" }),
+  },
+
   audit: {
     list: (params?: { limit?: number; page?: number }) => {
       const q = new URLSearchParams();

@@ -17,6 +17,7 @@ import {
 } from "../db";
 import { emitTaskCreated, emitTaskUpdated } from "./events";
 import { autoAssignTask } from "./assigner";
+import { handleApproveCommand, handleRejectCommand } from "./approval-workflow";
 
 // ============================================================
 // Command Definitions
@@ -314,7 +315,7 @@ async function handleHelpCommand(
 /assign @agent <task-title> - Assign a task to an agent
 /save <content> [| category:technical] - Save to knowledge base
 /status - Show system status (agents, tasks, costs)
-/help - Show this help message`;
+/help - Show this help message\n/approve [id] - Approve pending decisions (list all if no id)\n/reject <id> [reason] - Reject pending decision`;
 }
 
 // ============================================================
@@ -356,6 +357,21 @@ const COMMANDS: ChatCommand[] = [
     description: "Show help",
     usage: "/help",
     handler: handleHelpCommand,
+  },
+
+  {
+    name: "approve",
+    aliases: ["ok", "yes", "accept"],
+    description: "Approve pending decision",
+    usage: "/approve [decision-id] [comment]",
+    handler: async (args: string, ctx: CommandContext) => handleApproveCommand(args, ctx.authorName),
+  },
+  {
+    name: "reject",
+    aliases: ["no", "deny", "decline"],
+    description: "Reject pending decision",
+    usage: "/reject <decision-id> [reason]",
+    handler: async (args: string, ctx: CommandContext) => handleRejectCommand(args, ctx.authorName),
   },
 ];
 

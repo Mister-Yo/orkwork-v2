@@ -193,7 +193,7 @@ export async function listPendingApprovals(): Promise<ApprovalRequest[]> {
       createdAt: decisions.createdAt,
     })
     .from(decisions)
-    .where(sql`${decisions.decision} = PENDING`)
+    .where(sql`${decisions.decision} = 'PENDING'`)
     .orderBy(desc(decisions.createdAt))
     .limit(20);
 
@@ -245,7 +245,7 @@ export async function handleApproveCommand(
     .where(
       and(
         sql`${decisions.id}::text LIKE ${searchId + "%"}`,
-        sql`${decisions.decision} = PENDING`
+        sql`${decisions.decision} = 'PENDING'`
       )
     )
     .limit(1);
@@ -281,7 +281,7 @@ export async function handleRejectCommand(
     .where(
       and(
         sql`${decisions.id}::text LIKE ${searchId + "%"}`,
-        sql`${decisions.decision} = PENDING`
+        sql`${decisions.decision} = 'PENDING'`
       )
     )
     .limit(1);

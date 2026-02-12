@@ -42,11 +42,10 @@ export function Header() {
         {/* Search */}
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search..."
-            className="pl-9"
-            type="search"
-          />
+          <button
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }))}
+            className="h-9 w-full rounded-md border bg-background pl-9 pr-4 text-sm text-muted-foreground text-left flex items-center"
+          >Search... <kbd className="ml-auto text-[10px] border rounded px-1 py-0.5">⌘K</kbd></button>
         </div>
 
         {/* Actions */}

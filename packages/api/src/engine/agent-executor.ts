@@ -507,7 +507,25 @@ export async function runAgentExecutor(): Promise<void> {
       // 3a. Find or assign the agent for this task
       let agentRecord: Agent | null = null;
 
-      // First check if there is a recent task_assign decision for this task
+      // Check if task has a direct assigneeId that matches an agent
+      if (task.assigneeId) {
+        const [directAgent] = await db
+          .select()
+          .from(agents)
+          .where(
+            and(
+              eq(agents.id, task.assigneeId),
+              eq(agents.status, "active")
+            )
+          )
+          .limit(1);
+        if (directAgent) {
+          agentRecord = directAgent;
+        }
+      }
+
+      // If no agent from assigneeId, check decision records
+      if (!agentRecord) {
       const [assignDecision] = await db
         .select()
         .from(decisions)
@@ -539,6 +557,8 @@ export async function runAgentExecutor(): Promise<void> {
           agentRecord = foundAgent || null;
         }
       }
+
+      } // end agentRecord check from decisions
 
       // If no agent found via decision, try auto-assign
       if (!agentRecord && task.status === "ready") {

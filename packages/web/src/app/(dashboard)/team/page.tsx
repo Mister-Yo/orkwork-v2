@@ -70,12 +70,12 @@ function buildTree(agents: any[], users: any[], tasks: any[]): OrgNode {
     })
   }
 
-  // Find root agent (reports_to = null)
-  let rootAgentId: string | null = null
+  // Build hierarchy from reports_to
+  const rootAgents: string[] = []
   for (const a of agents) {
     const reportsTo = a.reports_to || a.reportsTo
     if (!reportsTo) {
-      rootAgentId = a.id
+      rootAgents.push(a.id)
     } else if (agentNodes.has(reportsTo)) {
       agentNodes.get(reportsTo)!.children.push(agentNodes.get(a.id)!)
     }
@@ -94,13 +94,10 @@ function buildTree(agents: any[], users: any[], tasks: any[]): OrgNode {
     children: [],
   }
 
-  if (rootAgentId && agentNodes.has(rootAgentId)) {
-    ceoNode.children.push(agentNodes.get(rootAgentId)!)
-  } else {
-    // No root agent, attach all agents directly
-    for (const a of agents) {
-      const reportsTo = a.reports_to || a.reportsTo
-      if (!reportsTo) ceoNode.children.push(agentNodes.get(a.id)!)
+  // Attach all root agents (reports_to = null) to CEO
+  for (const rid of rootAgents) {
+    if (agentNodes.has(rid)) {
+      ceoNode.children.push(agentNodes.get(rid)!)
     }
   }
 

@@ -51,7 +51,7 @@ export default function AgentsPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Agents</h1>
-          <p className="text-muted-foreground">{agentsList.length} agents configured</p>
+          <p className="text-muted-foreground">{agentsList.length} {agentsList.length === 1 ? "agent" : "agents"} configured</p>
         </div>
         <CreateAgentDialog />
       </div>
@@ -63,8 +63,8 @@ export default function AgentsPage() {
           const autonomy = agent.autonomy_level ?? agent.autonomyLevel ?? 'tool'
           const maxTasks = agent.max_concurrent_tasks ?? agent.maxConcurrentTasks ?? 1
           const model = agent.model || 'unknown'
-          const dailyBudget = (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0)
-          const totalSpent = (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0)
+          const dailyBudget = (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0) / 100
+          const totalSpent = (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0) / 100
 
           return (
             <Link href={`/agents/${agent.id}`} key={agent.id}><Card className="hover:shadow-md transition-shadow">
@@ -100,7 +100,7 @@ export default function AgentsPage() {
                   <div className="space-y-1">
                     <div className="flex justify-between text-xs">
                       <span>Daily budget</span>
-                      <span>${totalSpent.toFixed(2)} / ${dailyBudget.toFixed(2)}</span>
+                      <span>${totalSpent.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})} / ${dailyBudget.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     <Progress value={Math.min((totalSpent / dailyBudget) * 100, 100)} className="h-1.5" />
                   </div>

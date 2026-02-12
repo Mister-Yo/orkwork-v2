@@ -110,7 +110,7 @@ function SidebarContent({ className }: SidebarContentProps) {
       <div className="flex-1 overflow-auto py-4">
         <nav className="grid items-start gap-2 px-2 lg:px-4">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || 
+            const isActive = (item.href == "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href)) || 
               (item.href !== "/dashboard" && pathname?.startsWith(item.href + "/"))
             
             return (

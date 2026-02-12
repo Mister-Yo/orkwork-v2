@@ -124,7 +124,7 @@ export default function CostsPage() {
           <CardContent className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Today&apos;s spending</span>
-              <span className="font-medium">${Number(todaySpent).toFixed(2)} / ${Number(dailyBudget).toFixed(2)}</span>
+              <span className="font-medium">${Number(todaySpent).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})} / ${Number(dailyBudget).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             <Progress
               value={Math.min((todaySpent / dailyBudget) * 100, 100)}
@@ -133,7 +133,7 @@ export default function CostsPage() {
             {todaySpent > dailyBudget && (
               <div className="flex items-center gap-2 text-sm text-red-500">
                 <AlertTriangle className="h-4 w-4" />
-                <span>Budget exceeded by ${(todaySpent - dailyBudget).toFixed(2)}</span>
+                <span>Budget exceeded by ${(todaySpent - dailyBudget).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
               </div>
             )}
           </CardContent>
@@ -161,7 +161,7 @@ export default function CostsPage() {
                         <span className="text-sm font-medium">{agent.name}</span>
                         <Badge variant="outline" className="text-xs">{agent.status}</Badge>
                       </div>
-                      <span className="text-sm font-semibold">${Number(agent.spent).toFixed(2)}</span>
+                      <span className="text-sm font-semibold">${Number(agent.spent).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     {agent.budget > 0 && (
                       <Progress
@@ -196,7 +196,7 @@ export default function CostsPage() {
                         <span className="text-sm font-medium">{project.name}</span>
                         <Badge variant="outline" className="text-xs">{project.status}</Badge>
                       </div>
-                      <span className="text-sm font-semibold">${Number(project.spent).toFixed(2)}</span>
+                      <span className="text-sm font-semibold">${Number(project.spent).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
                     </div>
                     {project.budget > 0 && (
                       <div className="space-y-1">
@@ -205,7 +205,7 @@ export default function CostsPage() {
                           className="h-1.5"
                         />
                         <p className="text-xs text-muted-foreground text-right">
-                          ${Number(project.spent).toFixed(2)} / ${Number(project.budget).toFixed(2)}
+                          ${Number(project.spent).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})} / ${Number(project.budget).toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </p>
                       </div>
                     )}

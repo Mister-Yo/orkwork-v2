@@ -170,9 +170,10 @@ export default function TasksPage() {
               </div>
 
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_120px_140px_80px_80px_70px] gap-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-b">
+              <div className="grid grid-cols-[1fr_110px_100px_110px_70px_70px_60px] gap-2 px-3 py-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground border-b">
                 <span>Task</span>
                 <span>Assignee</span>
+                <span>Creator</span>
                 <span>Created</span>
                 <span>Running</span>
                 <span>Estimate</span>
@@ -182,7 +183,7 @@ export default function TasksPage() {
               <div className="space-y-0.5">
                 {grouped[status].map((task: any) => (
                   <Link href={`/tasks/${task.id}`} key={task.id}>
-                    <div className="grid grid-cols-[1fr_120px_140px_80px_80px_70px] gap-2 items-center px-3 py-2.5 rounded-lg border border-transparent hover:border-border hover:bg-accent/50 transition-colors group">
+                    <div className="grid grid-cols-[1fr_110px_100px_110px_70px_70px_60px] gap-2 items-center px-3 py-2.5 rounded-lg border border-transparent hover:border-border hover:bg-accent/50 transition-colors group">
                       {/* Task title + description */}
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
@@ -208,6 +209,11 @@ export default function TasksPage() {
                         ) : (
                           <span className="text-xs text-muted-foreground">Unassigned</span>
                         )}
+                      </div>
+
+                      {/* Creator */}
+                      <div className="text-xs text-muted-foreground truncate">
+                        {task.createdByName || "System"}
                       </div>
 
                       {/* Created */}

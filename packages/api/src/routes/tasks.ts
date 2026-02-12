@@ -126,6 +126,7 @@ app.get('/', requireAuth, async (c) => {
           updatedAt: tasks.updatedAt,
           assigneeName: sql`COALESCE(${users.displayName}, (SELECT name FROM agents WHERE id = ${tasks.assigneeId}))`.as('assigneeName'),
           assigneeType: sql`assignee_type`.as('assigneeType'),
+          createdByName: sql`COALESCE((SELECT display_name FROM users WHERE id = tasks.created_by), (SELECT name FROM agents WHERE id = tasks.created_by), 'System')`.as('createdByName'),
         })
         .from(tasks)
         .leftJoin(users, eq(tasks.assigneeId, users.id))
@@ -179,9 +180,23 @@ app.post('/', requireRole('member'), async (c) => {
       retryCount: 0,
     };
 
+    // Get current user/agent from auth
+    let createdBy = null;
+    let createdByType = 'user';
+    const authType = c.get('authType');
+    if (authType === 'user') {
+      const user = c.get('user');
+      if (user) { createdBy = user.id; createdByType = 'user'; }
+    } else if (authType === 'agent') {
+      const agent = c.get('agent');
+      if (agent) { createdBy = agent.id; createdByType = 'agent'; }
+    }
+
     const [createdTask] = await db.insert(tasks).values({
       ...newTask,
       assigneeType,
+      createdBy,
+      createdByType,
     } as any).returning();
 
     // Emit task created event

@@ -12,7 +12,7 @@ import {
   chatMessages,
   chatChannels,
   costEntries,
-  knowledgeEntries,
+  decisions,
   type Agent,
 } from "../db";
 import { emitTaskCreated, emitTaskUpdated } from "./events";
@@ -136,7 +136,7 @@ async function handleStatusCommand(
     })
     .from(taskExecutions)
     .where(
-      sql`${taskExecutions.startedAt} > NOW() - INTERVAL 24 hours`
+      sql`${taskExecutions.startedAt} > NOW() - INTERVAL '24 hours'`
     )
     .groupBy(taskExecutions.status);
 
@@ -148,7 +148,7 @@ async function handleStatusCommand(
     })
     .from(costEntries)
     .where(
-      sql`${costEntries.createdAt} > NOW() - INTERVAL 24 hours`
+      sql`${costEntries.createdAt} > NOW() - INTERVAL '24 hours'`
     );
 
   const statusParts: string[] = [];
@@ -207,12 +207,19 @@ async function handleSaveCommand(
   const title = content.substring(0, 80).replace(/\n/g, " ");
 
   try {
-    await db.insert(knowledgeEntries).values({
-      title,
-      content,
-      category,
-      source: "chat",
-      createdBy: context.authorId,
+    // Use agentMemory to store knowledge (no dedicated knowledge table yet)
+    // Store as system-level memory entry
+    // For user-authored saves, use the first available agent
+    let saveAgentId = context.authorId;
+    if (context.authorType === "user") {
+      const [firstAgent] = await db.select({ id: agents.id }).from(agents).limit(1);
+      if (firstAgent) saveAgentId = firstAgent.id;
+      else return "Error: No agents configured to store knowledge.";
+    }
+    await db.insert(agentMemory).values({
+      agentId: saveAgentId,
+      memoryType: "fact",
+      content: "[" + category + "] " + content,
     });
 
     return `Saved to knowledge base [${category}]: "${title}"`;
@@ -282,9 +289,11 @@ async function handleAssignCommand(
     .where(eq(tasks.id, task.id));
 
   // Create decision record for the assignment
+  // madeBy must be a user ID (FK to users). Use system user as fallback for agents
+  const systemUserId = "00000000-0000-0000-0000-000000000000";
   await db.insert(decisions).values({
     decisionType: "task_assign",
-    madeBy: context.authorId,
+    madeBy: context.authorType === "user" ? context.authorId : systemUserId,
     context: `Chat assignment for task: ${task.title}`,
     decision: `Assigned to agent ${agent.id}`,
     reasoning: `Manually assigned via chat by ${context.authorName}`,

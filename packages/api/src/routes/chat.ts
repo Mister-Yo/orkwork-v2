@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db, chatChannels, chatMessages, users, agents } from '../db';
 import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
 import { eventBus } from '../engine/events';
+import { processMessage, postCommandResponse } from '../engine/chat-hooks';
 
 const app = new Hono();
 
@@ -153,6 +154,21 @@ app.post('/:channelId/messages', async (c) => {
 
   // Emit SSE event
   eventBus.emitEvent('chat.message' as any, { channelId, message: createdMessage });
+
+  // Process chat commands (async, do not block response)
+  processMessage(
+    { id: message.id, channelId, authorId, authorType, content: parsed.content },
+    authorInfo.displayName || authorInfo.username || "Unknown"
+  ).then(async (response) => {
+    if (response) {
+      const [botAgent] = await db.select().from(agents).where(eq(agents.status, "active")).limit(1);
+      if (botAgent) {
+        await postCommandResponse(channelId, botAgent.id, response, message.id);
+      }
+    }
+  }).catch((err) => {
+    console.error("[ChatHooks] Error processing message:", err);
+  });
 
   return c.json({ message: createdMessage }, 201);
 });

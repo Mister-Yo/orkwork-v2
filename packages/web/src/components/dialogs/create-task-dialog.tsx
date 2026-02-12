@@ -1,14 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Bot } from "lucide-react"
+import { Plus, Bot, User } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api } from "@/lib/api"
-import { useSWRConfig } from "swr"
+import useSWR, { useSWRConfig } from "swr"
 import { useProjects, useAgents } from "@/hooks/use-api"
 
 export function CreateTaskDialog() {
@@ -20,6 +20,8 @@ export function CreateTaskDialog() {
   const projectsList = Array.isArray(projects) ? projects : []
   const { data: agentsData } = useAgents()
   const agentsList = (agentsData as any)?.agents || (Array.isArray(agentsData) ? agentsData : [])
+  const { data: usersData } = useSWR("/v2/users-team", () => api.users.list())
+  const usersList = (usersData as any)?.users || (Array.isArray(usersData) ? usersData : [])
 
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -105,10 +107,15 @@ export function CreateTaskDialog() {
             </div>
           </div>
           <div className="space-y-2">
-            <Label>Assign Agent</Label>
+            <Label>Assign To</Label>
             <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger><SelectValue placeholder="Select agent (optional)" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Select person or agent (optional)" /></SelectTrigger>
               <SelectContent>
+                {usersList.filter((u: any) => u.role !== "pending").map((u: any) => (
+                  <SelectItem key={u.id} value={u.id}>
+                    <span className="flex items-center gap-2"><User className="h-3 w-3" /> {u.displayName || u.display_name || u.username}</span>
+                  </SelectItem>
+                ))}
                 {agentsList.map((a: any) => (
                   <SelectItem key={a.id} value={a.id}>
                     <span className="flex items-center gap-2"><Bot className="h-3 w-3" /> {a.name}</span>

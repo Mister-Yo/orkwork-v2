@@ -23,7 +23,7 @@ function DashboardStats() {
   const agentsList = Array.isArray(agents) ? agents : []
   const tasksList = Array.isArray(tasks) ? tasks : []
 
-  const activeAgents = agentsList.filter((a: any) => a.status === 'active' || a.status === 'idle').length
+  const activeAgents = agentsList.filter((a: any) => a.status === 'active').length
   const completedTasks = tasksList.filter((t: any) => t.status === 'completed').length
   const inProgressTasks = tasksList.filter((t: any) => t.status === 'in_progress' || t.status === 'assigned').length
   const totalTasks = tasksList.length
@@ -66,7 +66,7 @@ function DashboardStats() {
 
       <StatCard
         title="Total Spent"
-        value={`formatCurrency(totalSpent)`}
+        value={formatCurrency(totalSpent)}
         icon={DollarSign}
         subtitle={`${completedTasks} tasks completed`}
       />

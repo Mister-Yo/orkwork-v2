@@ -21,6 +21,7 @@ import {
 import { checkPermission } from "./autonomy";
 import { autoAssignTask } from "./assigner";
 import { emitTaskUpdated, emitTaskCompleted, emitTaskBlocked, emitCostRecorded } from "./events";
+import { AGENT_TOOLS, executeTool, type ToolResult } from "./agent-tools";
 
 // ============================================================
 // Configuration
@@ -49,12 +50,12 @@ const EXECUTOR_CONFIG = {
 
 interface ClaudeMessage {
   role: "user" | "assistant";
-  content: string;
+  content: string | Array<any>;
 }
 
 interface ClaudeResponse {
   id: string;
-  content: Array<{ type: "text"; text: string }>;
+  content: Array<{ type: "text"; text: string } | { type: "tool_use"; id: string; name: string; input: Record<string, any> }>;
   model: string;
   usage: {
     input_tokens: number;
@@ -85,6 +86,7 @@ async function callClaudeAPI(
       max_tokens: maxTokens,
       system: systemPrompt,
       messages,
+      tools: AGENT_TOOLS,
     }),
   });
 
@@ -294,18 +296,63 @@ async function executeTask(
     const context = await buildTaskContext(task, agent);
     const systemPrompt = buildSystemPrompt(context);
 
-    // 4. Call Claude API
-    const claudeResponse = await callClaudeAPI(systemPrompt, [
+    // 4. Call Claude API with tool-use loop
+    const conversationMessages: ClaudeMessage[] = [
       {
         role: "user",
-        content: `Execute this task: "${task.title}"\n\n${task.description || "No additional details."}`,
+        content: `Execute this task: "${task.title}"\n\n${task.description || "No additional details."}\n\nYou have tools available to read/write files, run shell commands, and list files. Use them to complete the task. When done, provide a summary of what you did.`,
       },
-    ]);
+    ];
 
-    const output =
-      claudeResponse.content[0]?.text || "No output generated";
-    const inputTokens = claudeResponse.usage.input_tokens;
-    const outputTokens = claudeResponse.usage.output_tokens;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let finalOutput = "";
+    const toolLog: string[] = [];
+    const maxToolRounds = 10;
+
+    for (let round = 0; round < maxToolRounds; round++) {
+      const claudeResponse = await callClaudeAPI(systemPrompt, conversationMessages);
+      totalInputTokens += claudeResponse.usage.input_tokens;
+      totalOutputTokens += claudeResponse.usage.output_tokens;
+
+      // Extract text blocks
+      const textBlocks = claudeResponse.content.filter((b: any) => b.type === "text");
+      const toolBlocks = claudeResponse.content.filter((b: any) => b.type === "tool_use");
+
+      if (textBlocks.length > 0) {
+        finalOutput = textBlocks.map((b: any) => b.text).join("\n");
+      }
+
+      // If no tool use, we are done
+      if (claudeResponse.stop_reason !== "tool_use" || toolBlocks.length === 0) {
+        break;
+      }
+
+      // Process tool calls
+      conversationMessages.push({ role: "assistant", content: claudeResponse.content });
+      const toolResults: any[] = [];
+      for (const toolBlock of toolBlocks) {
+        const tb = toolBlock as any;
+        console.log(`[Executor] Tool call: ${tb.name}(${JSON.stringify(tb.input).slice(0, 100)})`);
+        const result = await executeTool(tb.name, tb.input);
+        toolLog.push(`[${tb.name}] ${result.success ? "OK" : "FAIL"}: ${(result.output || result.error || "").slice(0, 200)}`);
+        toolResults.push({
+          type: "tool_result",
+          tool_use_id: tb.id,
+          content: result.success ? result.output : `Error: ${result.error}\n${result.output}`,
+        });
+      }
+      conversationMessages.push({ role: "user", content: toolResults });
+    }
+
+    // Append tool log to output
+    if (toolLog.length > 0) {
+      finalOutput += "\n\n## Tool Execution Log\n" + toolLog.map((l, i) => `${i + 1}. ${l}`).join("\n");
+    }
+
+    const output = finalOutput || "No output generated";
+    const inputTokens = totalInputTokens;
+    const outputTokens = totalOutputTokens;
     const totalTokens = inputTokens + outputTokens;
     const costCents = calculateCostCents(inputTokens, outputTokens);
     const durationMs = Date.now() - startTime;

@@ -455,9 +455,9 @@ export default function GamePage() {
   const projectsList: any[] = Array.isArray(projects) ? projects : []
 
   // Generate stable positions
-  const mapSize = { w: 1200, h: 600 }
-  const buildingPositions = distributePositions(projectsList.length, { w: mapSize.w * 0.9, h: mapSize.h * 0.7 }, 42)
-  const unitPositions = distributePositions(agentsList.length, { w: mapSize.w * 0.8, h: mapSize.h * 0.6 }, 17)
+  const mapSize = { w: 1600, h: 800 }
+  const buildingPositions = distributePositions(projectsList.length, { w: mapSize.w * 0.85, h: mapSize.h * 0.85 }, 42)
+  const unitPositions = distributePositions(agentsList.length, { w: mapSize.w * 0.8, h: mapSize.h * 0.75 }, 17)
 
   // Count workers per project
   const workersPerProject: Record<string, number> = {}

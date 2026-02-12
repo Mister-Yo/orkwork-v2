@@ -507,6 +507,7 @@ export default function TeamPage() {
       {/* Side Panel */}
       {selectedNode && (
         <DetailPanel
+          key={selectedNode.id}
           node={selectedNode}
           onClose={() => setSelectedNode(null)}
           agents={agents}

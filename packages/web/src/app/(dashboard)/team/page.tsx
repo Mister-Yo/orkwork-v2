@@ -101,6 +101,39 @@ function buildTree(agents: any[], users: any[], tasks: any[]): OrgNode {
     }
   }
 
+  // Add non-CEO users to the tree with hierarchy
+  const otherUsers = users.filter((u: any) => u.role !== "owner" && u.role !== "pending")
+  const userNodes = new Map<string, OrgNode>()
+  for (const u of otherUsers) {
+    userNodes.set(u.id, {
+      id: u.id,
+      name: u.displayName || u.display_name || u.username,
+      subtitle: u.title || u.role || "member",
+      department: u.department || "",
+      status: "active",
+      type: "user",
+      avatarUrl: u.avatarUrl || u.avatar_url,
+      currentTask: taskMap.get(u.id),
+      raw: u,
+      children: [],
+    })
+  }
+  // Build user hierarchy
+  const rootUsers: string[] = []
+  for (const u of otherUsers) {
+    const reportsTo = u.reports_to || u.reportsTo
+    if (!reportsTo || reportsTo === ceo?.id) {
+      rootUsers.push(u.id)
+    } else if (userNodes.has(reportsTo)) {
+      userNodes.get(reportsTo)!.children.push(userNodes.get(u.id)!)
+    } else {
+      rootUsers.push(u.id) // fallback to root
+    }
+  }
+  for (const uid of rootUsers) {
+    if (userNodes.has(uid)) ceoNode.children.push(userNodes.get(uid)!)
+  }
+
   return ceoNode
 }
 

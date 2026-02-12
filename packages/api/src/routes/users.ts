@@ -50,6 +50,7 @@ app.get('/', requireRole('admin'), async (c) => {
           department: users.department,
           createdAt: users.createdAt,
           updatedAt: users.updatedAt,
+          reportsTo: sql`reports_to`.as("reportsTo"),
         })
         .from(users)
         .where(conditions.length > 0 ? sql`${sql.join(conditions, sql` AND `)}` : undefined)

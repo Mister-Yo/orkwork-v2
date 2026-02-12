@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useTasks } from "@/hooks/use-api"
 import { CreateTaskDialog } from "@/components/dialogs/create-task-dialog"
+import { KanbanBoard } from "@/components/tasks/kanban-board"
+import { LayoutList, Columns3 } from "lucide-react"
 
 const statusColors: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
@@ -70,6 +72,7 @@ export default function TasksPage() {
   const { data: tasks, isLoading } = useTasks()
   const tasksList = Array.isArray(tasks) ? tasks : []
   const [filter, setFilter] = useState<FilterStatus>('all')
+  const [view, setView] = useState<'list' | 'kanban'>('list')
 
   const filtered = tasksList.filter((t: any) => {
     if (filter === 'all') return true
@@ -133,6 +136,14 @@ export default function TasksPage() {
             {label}
           </Button>
         ))}
+        <div className="flex gap-1 border rounded-lg p-0.5 ml-auto">
+          <Button variant={view === 'list' ? 'default' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('list')}>
+            <LayoutList className="h-3.5 w-3.5 mr-1" />List
+          </Button>
+          <Button variant={view === 'kanban' ? 'default' : 'ghost'} size="sm" className="h-7 px-2" onClick={() => setView('kanban')}>
+            <Columns3 className="h-3.5 w-3.5 mr-1" />Board
+          </Button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -145,6 +156,8 @@ export default function TasksPage() {
             </p>
           </CardContent>
         </Card>
+      ) : view === 'kanban' ? (
+        <KanbanBoard tasks={filtered} />
       ) : (
         <div className="space-y-6">
           {statusOrder.filter(s => grouped[s]?.length).map(status => (

@@ -137,3 +137,43 @@ app.get('/live', (c) => {
 });
 
 export default app;
+// GET /api/health/metrics - System metrics for monitoring dashboard
+app.get('/metrics', async (c) => {
+  try {
+    const uptime = Math.floor((Date.now() - startTime) / 1000);
+    const mem = process.memoryUsage();
+    
+    // DB stats
+    const dbStats = await db.execute(sql`
+      SELECT 
+        (SELECT count(*) FROM agents WHERE status = 'active') as active_agents,
+        (SELECT count(*) FROM tasks WHERE status = 'in_progress') as active_tasks,
+        (SELECT count(*) FROM tasks WHERE status = 'completed' AND completed_at > NOW() - INTERVAL '24 hours') as tasks_completed_24h,
+        (SELECT count(*) FROM notifications WHERE status = 'pending') as unread_notifications,
+        pg_database_size(current_database()) as db_size_bytes
+    `);
+    
+    const stats = (Array.isArray(dbStats) ? dbStats : dbStats.rows)?.[0] || {};
+    
+    return c.json({
+      timestamp: new Date().toISOString(),
+      uptime_seconds: uptime,
+      process: {
+        heap_used_mb: Math.round(mem.heapUsed / 1024 / 1024),
+        heap_total_mb: Math.round(mem.heapTotal / 1024 / 1024),
+        rss_mb: Math.round(mem.rss / 1024 / 1024),
+        external_mb: Math.round(mem.external / 1024 / 1024),
+      },
+      database: {
+        active_agents: Number(stats.active_agents || 0),
+        active_tasks: Number(stats.active_tasks || 0),
+        tasks_completed_24h: Number(stats.tasks_completed_24h || 0),
+        unread_notifications: Number(stats.unread_notifications || 0),
+        db_size_mb: Math.round(Number(stats.db_size_bytes || 0) / 1024 / 1024),
+      },
+    });
+  } catch (error) {
+    console.error('Metrics error:', error);
+    return c.json({ error: 'Failed to collect metrics' }, 500);
+  }
+});

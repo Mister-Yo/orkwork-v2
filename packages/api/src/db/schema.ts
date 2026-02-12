@@ -98,6 +98,8 @@ export const projects = pgTable('projects', {
   healthScore: integer('health_score'),  // 0-100
   riskLevel: riskLevelEnum('risk_level').notNull().default('low'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   nameIdx: index('projects_name_idx').on(table.name),
@@ -444,8 +446,10 @@ export const sessionsRelations = relations(sessions, ({ one }) => ({
   }),
 }));
 
-export const projectsRelations = relations(projects, ({ many }) => ({
+export const projectsRelations = relations(projects, ({ one, many }) => ({
   tasks: many(tasks),
+  createdByUser: one(users, { fields: [projects.createdBy], references: [users.id] }),
+  owner: one(users, { fields: [projects.ownerId], references: [users.id] }),
 }));
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({

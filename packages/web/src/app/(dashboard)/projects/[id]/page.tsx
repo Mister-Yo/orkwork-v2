@@ -1,12 +1,13 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, FolderKanban, Calendar, DollarSign, AlertTriangle, CheckSquare, Activity } from "lucide-react"
+import { ArrowLeft, FolderKanban, Calendar, DollarSign, AlertTriangle, CheckSquare, Activity, User, Crown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Progress } from "@/components/ui/progress"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useProject } from "@/hooks/use-api"
 import useSWR from "swr"
 import { apiFetch } from "@/lib/api"
@@ -81,6 +82,11 @@ export default function ProjectDetailPage() {
   const createdAt = p.created_at ?? p.createdAt
   const budgetPct = budgetUsd > 0 ? Math.round((spentUsd / budgetUsd) * 100) : 0
 
+  const ownerName = p.ownerName || p.owner_name || null
+  const ownerAvatar = p.ownerAvatar || p.owner_avatar || null
+  const createdByName = p.createdByName || p.created_by_name || null
+  const createdByAvatar = p.createdByAvatar || p.created_by_avatar || null
+
   return (
     <div className="space-y-6">
       <Button variant="ghost" size="sm" onClick={() => router.push('/projects')}>
@@ -97,6 +103,32 @@ export default function ProjectDetailPage() {
           </div>
           {p.description && <p className="text-muted-foreground mt-1">{p.description}</p>}
         </div>
+      </div>
+
+      {/* Owner & Creator */}
+      <div className="flex items-center gap-6">
+        {ownerName && (
+          <div className="flex items-center gap-2">
+            <Crown className="h-4 w-4 text-amber-500" />
+            <span className="text-sm text-muted-foreground">Owner:</span>
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={ownerAvatar || undefined} />
+              <AvatarFallback className="text-xs">{ownerName[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">{ownerName}</span>
+          </div>
+        )}
+        {createdByName && (
+          <div className="flex items-center gap-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Created by:</span>
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={createdByAvatar || undefined} />
+              <AvatarFallback className="text-xs">{createdByName[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium">{createdByName}</span>
+          </div>
+        )}
       </div>
 
       {/* Stats */}

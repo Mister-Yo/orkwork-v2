@@ -155,7 +155,8 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
 
   tasks.forEach(task => {
     let status = task.status
-    if (status === "planning" || status === "assigned") status = "in_progress"
+    if (status === "planning") status = "created"
+    if (status === "assigned") status = "in_progress"
     if (status === "cancelled" || status === "rejected") status = "blocked"
     if (columnTasks[status]) {
       columnTasks[status].push(task)
@@ -173,7 +174,7 @@ export function KanbanBoard({ tasks }: { tasks: Task[] }) {
         return (
           <div
             key={column.key}
-            className={`flex-shrink-0 w-72 flex flex-col rounded-lg border ${column.color} border-t-2 bg-muted/20 ${isOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
+            className={`flex-shrink-0 w-72 xl:flex-1 xl:min-w-[200px] flex flex-col rounded-lg border ${column.color} border-t-2 bg-muted/20 ${isOver ? "ring-2 ring-primary/50 bg-primary/5" : ""}`}
             onDragOver={(e) => handleDragOver(e, column.key)}
             onDragLeave={handleDragLeave}
             onDrop={(e) => handleDrop(e, column.key)}

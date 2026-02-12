@@ -189,10 +189,11 @@ function TreeNode({ node, onSelect, selectedId, isRoot }: {
 }
 
 // ─── Side Panel ───
-function DetailPanel({ node, onClose, agents, projects, tasks, onRefresh }: {
+function DetailPanel({ node, onClose, agents, users: usersList, projects, tasks, onRefresh }: {
   node: OrgNode
   onClose: () => void
   agents: any[]
+  users: any[]
   projects: any[]
   tasks: any[]
   onRefresh: () => void
@@ -508,6 +509,7 @@ export default function TeamPage() {
           node={selectedNode}
           onClose={() => setSelectedNode(null)}
           agents={agents}
+          users={usersList}
           projects={projects}
           tasks={tasks}
           onRefresh={handleRefresh}

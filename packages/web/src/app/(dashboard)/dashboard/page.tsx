@@ -1,4 +1,5 @@
 "use client"
+import { formatCurrency } from "@/lib/utils/currency"
 
 import { Bot, CheckSquare, DollarSign, TrendingUp } from "lucide-react"
 import { HealthScore } from "@/components/dashboard/health-score"
@@ -65,7 +66,7 @@ function DashboardStats() {
 
       <StatCard
         title="Total Spent"
-        value={`$${Number(totalSpent).toFixed(2)}`}
+        value={`formatCurrency(totalSpent)`}
         icon={DollarSign}
         subtitle={`${completedTasks} tasks completed`}
       />

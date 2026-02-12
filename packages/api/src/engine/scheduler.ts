@@ -4,6 +4,7 @@
 import { eq, lt, and, sql } from 'drizzle-orm';
 import { db, sessions, agentMemory, agents, costEntries } from '../db';
 import { checkSLAs } from './sla';
+import { registerAgentExecutor } from './agent-executor';
 
 interface JobDefinition {
   name: string;
@@ -305,5 +306,8 @@ export function initializeScheduler(): void {
     runCostAggregation
   );
   
+  // Agent executor: every 30 seconds
+  registerAgentExecutor(scheduler, 30 * 1000);
+
   console.log('[Scheduler] Default jobs initialized');
 }

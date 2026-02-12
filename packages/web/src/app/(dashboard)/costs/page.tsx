@@ -1,4 +1,5 @@
 "use client"
+import { formatCurrency } from "@/lib/utils/currency"
 
 import { DollarSign, TrendingUp, TrendingDown, Bot, FolderKanban, AlertTriangle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -65,16 +66,16 @@ export default function CostsPage() {
   // Calculate per-agent costs
   const agentCosts = agentsList.map((agent: any) => ({
     name: agent.name,
-    spent: (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0) / 100,
-    budget: (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0) / 100,
+    spent: (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0),
+    budget: (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0),
     status: agent.status,
   })).sort((a: any, b: any) => b.spent - a.spent)
 
   // Calculate per-project costs
   const projectCosts = projectsList.map((project: any) => ({
     name: project.name,
-    spent: (project.spent_usd ?? project.spentUsd ?? 0) / 100,
-    budget: (project.budget_usd ?? project.budgetUsd ?? 0) / 100,
+    spent: (project.spent_usd ?? project.spentUsd ?? 0),
+    budget: (project.budget_usd ?? project.budgetUsd ?? 0),
     status: project.status,
   })).sort((a: any, b: any) => b.spent - a.spent)
 
@@ -89,20 +90,20 @@ export default function CostsPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <CostCard
           title="Total Spent"
-          value={`$${Number(totalSpent).toFixed(2)}`}
+          value={`formatCurrency(totalSpent)`}
           subtitle="All time"
           icon={DollarSign}
         />
         <CostCard
           title="Today"
-          value={`$${Number(todaySpent).toFixed(2)}`}
-          subtitle={dailyBudget > 0 ? `of $${Number(dailyBudget).toFixed(2)} budget` : 'No daily budget set'}
+          value={`formatCurrency(todaySpent)`}
+          subtitle={dailyBudget > 0 ? `of formatCurrency(dailyBudget) budget` : 'No daily budget set'}
           icon={TrendingUp}
           trend={todaySpent > dailyBudget && dailyBudget > 0 ? 'up' : 'neutral'}
         />
         <CostCard
           title="Daily Budget"
-          value={dailyBudget > 0 ? `$${Number(dailyBudget).toFixed(2)}` : 'Not set'}
+          value={dailyBudget > 0 ? `formatCurrency(dailyBudget)` : 'Not set'}
           subtitle={dailyBudget > 0 ? `${Math.round((todaySpent / dailyBudget) * 100)}% used` : undefined}
           icon={DollarSign}
         />

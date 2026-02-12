@@ -68,7 +68,7 @@ export default function TasksPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Tasks</h1>
-          <p className="text-muted-foreground">{tasksList.length} tasks total</p>
+          <p className="text-muted-foreground">{tasksList.length} {tasksList.length === 1 ? "task" : "tasks"} total</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline"><Filter className="h-4 w-4 mr-2" /> Filter</Button>

@@ -117,7 +117,10 @@ app.post('/:channelId/messages', async (c) => {
   const channelId = c.req.param('channelId');
   const body = await c.req.json();
   const parsed = sendMessageSchema.parse(body);
-  const user = getAuthUser(c);
+  
+  const authType = c.get('authType') as 'user' | 'agent' | undefined;
+  const agent = c.get('agent') as any;
+  const user = authType === 'agent' ? null : getAuthUser(c);
 
   // Verify channel exists
   const [channel] = await db.select().from(chatChannels).where(eq(chatChannels.id, channelId)).limit(1);
@@ -125,21 +128,27 @@ app.post('/:channelId/messages', async (c) => {
     return c.json({ error: 'Channel not found' }, 404);
   }
 
+  const authorId = authType === 'agent' ? agent.id : user!.id;
+  const authorType = authType === 'agent' ? 'agent' : 'user';
+
   const [message] = await db
     .insert(chatMessages)
     .values({
       channelId,
-      authorId: user.id,
-      authorType: 'user',
+      authorId,
+      authorType: authorType as any,
       content: parsed.content,
       replyTo: parsed.replyTo || null,
     })
     .returning();
 
   // Attach author info
+  const authorInfo = authType === 'agent'
+    ? { id: agent.id, username: agent.name, displayName: agent.name, avatarUrl: null }
+    : { id: user!.id, username: (user as any).username, displayName: (user as any).displayName, avatarUrl: (user as any).avatarUrl };
   const createdMessage = {
     ...message,
-    author: { id: user.id, username: (user as any).username, displayName: (user as any).displayName, avatarUrl: (user as any).avatarUrl },
+    author: authorInfo,
   };
 
   // Emit SSE event

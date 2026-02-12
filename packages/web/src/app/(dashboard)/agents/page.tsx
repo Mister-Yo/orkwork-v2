@@ -1,4 +1,5 @@
 "use client"
+import { formatCurrency } from "@/lib/utils/currency"
 
 import Link from "next/link"
 
@@ -62,8 +63,8 @@ export default function AgentsPage() {
           const autonomy = agent.autonomy_level ?? agent.autonomyLevel ?? 'tool'
           const maxTasks = agent.max_concurrent_tasks ?? agent.maxConcurrentTasks ?? 1
           const model = agent.model || 'unknown'
-          const dailyBudget = (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0) / 100
-          const totalSpent = (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0) / 100
+          const dailyBudget = (agent.daily_budget_usd ?? agent.dailyBudgetUsd ?? 0)
+          const totalSpent = (agent.total_spent_usd ?? agent.totalSpentUsd ?? 0)
 
           return (
             <Link href={`/agents/${agent.id}`} key={agent.id}><Card className="hover:shadow-md transition-shadow">

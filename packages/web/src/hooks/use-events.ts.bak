@@ -16,7 +16,6 @@ export function useEvents({ onEvent, enabled = true }: UseEventsOptions = {}) {
   const [connected, setConnected] = useState(false)
   const [lastEvent, setLastEvent] = useState<{ type: string; payload: any } | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>(null)
-  const gracePeriodTimeoutRef = useRef<NodeJS.Timeout>(null)
   const reconnectAttempts = useRef(0)
 
   const invalidateCache = useCallback((type: string) => {
@@ -69,12 +68,6 @@ export function useEvents({ onEvent, enabled = true }: UseEventsOptions = {}) {
       console.log('[SSE] Connected')
       setConnected(true)
       reconnectAttempts.current = 0
-      
-      // Clear any pending grace period timeout
-      if (gracePeriodTimeoutRef.current) {
-        clearTimeout(gracePeriodTimeoutRef.current)
-        gracePeriodTimeoutRef.current = null
-      }
     }
 
     es.onmessage = (event) => {
@@ -103,15 +96,8 @@ export function useEvents({ onEvent, enabled = true }: UseEventsOptions = {}) {
 
     es.onerror = () => {
       console.log('[SSE] Connection error, reconnecting...')
+      setConnected(false)
       es.close()
-
-      // Add 5-second grace period before showing Offline
-      if (!gracePeriodTimeoutRef.current) {
-        gracePeriodTimeoutRef.current = setTimeout(() => {
-          setConnected(false)
-          gracePeriodTimeoutRef.current = null
-        }, 5000)
-      }
 
       // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
       const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
@@ -131,9 +117,6 @@ export function useEvents({ onEvent, enabled = true }: UseEventsOptions = {}) {
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
-      }
-      if (gracePeriodTimeoutRef.current) {
-        clearTimeout(gracePeriodTimeoutRef.current)
       }
     }
   }, [connect])

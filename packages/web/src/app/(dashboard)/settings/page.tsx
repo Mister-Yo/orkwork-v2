@@ -212,10 +212,10 @@ function ApiKeysTab() {
                     </div>
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {k.created_at ? new Date(k.created_at).toLocaleDateString() : "—"}
+                    {k.created_at || k.createdAt ? new Date(k.created_at || k.createdAt).toLocaleDateString() : "—"}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : "Never"}
+                    {k.last_used_at || k.lastUsedAt ? new Date(k.last_used_at || k.lastUsedAt).toLocaleDateString() : "Never"}
                   </TableCell>
                   <TableCell>
                     <Button

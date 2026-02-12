@@ -1,7 +1,7 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
 import { createHash } from 'crypto';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, sql } from 'drizzle-orm';
 import { db, users, sessions, agents, apiKeys, type User, type Agent, type ApiKey } from '../db';
 
 export type UserRole = 'owner' | 'admin' | 'member' | 'pending' | 'viewer';
@@ -51,8 +51,8 @@ export const authMiddleware = createMiddleware(async (c, next) => {
             and(
               eq(apiKeys.keyHash, keyHash),
               eq(apiKeys.isActive, true),
-              // Check expiration if set
-              apiKeys.expiresAt ? gt(apiKeys.expiresAt, new Date()) : undefined
+              // Check expiration: allow if null (no expiry) or not yet expired
+              sql`(${apiKeys.expiresAt} IS NULL OR ${apiKeys.expiresAt} > NOW())`
             )
           )
           .limit(1);

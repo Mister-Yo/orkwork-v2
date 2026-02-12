@@ -1,4 +1,5 @@
 "use client"
+import { formatCurrency } from "@/lib/utils/currency"
 
 import { useParams, useRouter } from "next/navigation"
 import { useState } from "react"
@@ -60,8 +61,8 @@ export default function AgentDetailPage() {
   const autonomy = a.autonomy_level ?? a.autonomyLevel ?? 'tool'
   const maxTasks = a.max_concurrent_tasks ?? a.maxConcurrentTasks ?? 1
   const model = a.model || 'unknown'
-  const dailyBudget = (a.daily_budget_usd ?? a.dailyBudgetUsd ?? 0) / 100
-  const totalSpent = (a.total_spent_usd ?? a.totalSpentUsd ?? 0) / 100
+  const dailyBudget = (a.daily_budget_usd ?? a.dailyBudgetUsd ?? 0)
+  const totalSpent = (a.total_spent_usd ?? a.totalSpentUsd ?? 0)
   const capabilities = a.capabilities || []
   const createdAt = a.created_at ?? a.createdAt
 

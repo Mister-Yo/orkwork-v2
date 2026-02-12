@@ -111,7 +111,7 @@ function SidebarContent({ className }: SidebarContentProps) {
         <nav className="grid items-start gap-2 px-2 lg:px-4">
           {navigation.map((item) => {
             const isActive = pathname === item.href || 
-              (item.href !== "/dashboard" && pathname?.startsWith(item.href))
+              (item.href !== "/dashboard" && pathname?.startsWith(item.href + "/"))
             
             return (
               <Link

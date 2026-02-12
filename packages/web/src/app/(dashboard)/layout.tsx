@@ -1,5 +1,6 @@
 "use client"
 import { SearchModal } from "@/components/search-modal"
+import { Breadcrumb } from "@/components/ui/breadcrumb"
 
 import { useRouter, usePathname } from "next/navigation"
 import { useUser } from "@/lib/auth"
@@ -53,7 +54,8 @@ export default function DashboardLayout({
 
   // If user is pending and on the pending page, show it without sidebar
   if (user && user.role === 'pending' && pathname === '/pending') {
-    return <>{children}</>
+    return <><Breadcrumb />
+            {children}</>
   }
 
   // If there's an error or no user, the middleware should have redirected to login
@@ -83,6 +85,7 @@ export default function DashboardLayout({
         {/* Page Content */}
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto p-6">
+            <Breadcrumb />
             {children}
           </div>
         </main>

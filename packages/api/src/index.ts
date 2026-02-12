@@ -36,6 +36,7 @@ import { authRateLimiter, apiRateLimiter, deployRateLimiter } from './middleware
 
 // Import scheduler
 import { initializeScheduler, scheduler } from './engine/scheduler';
+import { registerNotificationHooks } from './engine/notification-hooks';
 
 // Create main Hono app
 const app = new Hono();
@@ -199,6 +200,7 @@ const startServer = () => {
   console.log(`⏰ Initializing background scheduler...`);
   initializeScheduler();
   scheduler.start();
+  registerNotificationHooks();
   
   const server = Bun.serve({
     hostname: "127.0.0.1",

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  UserCircle,
   Bot,
   CheckSquare,
   DollarSign,
@@ -38,6 +39,11 @@ const navigation = [
     name: "Team",
     href: "/team",
     icon: Users,
+  },
+  {
+    name: "Users",
+    href: "/users",
+    icon: UserCircle,
   },
   {
     name: "Projects",

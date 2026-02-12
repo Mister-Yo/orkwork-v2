@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Bell, Moon, Search, Sun, Wifi, WifiOff } from "lucide-react"
+import { Moon, Search, Sun, Wifi, WifiOff } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -17,6 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useUser } from "@/lib/auth"
 import { useEvents } from "@/hooks/use-events"
+import { NotificationCenter } from "@/components/layout/notification-center"
 
 export function Header() {
   const { setTheme, theme } = useTheme()
@@ -86,10 +87,7 @@ export function Header() {
           </Button>
 
           {/* Notifications */}
-          <Button variant="ghost" size="icon" className="relative">
-            <Bell className="h-4 w-4" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <NotificationCenter />
 
           {/* User Menu */}
           <DropdownMenu>

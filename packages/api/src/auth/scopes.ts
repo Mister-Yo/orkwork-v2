@@ -31,7 +31,7 @@ export type Scope = typeof AVAILABLE_SCOPES[number];
 
 // Check if user/agent has a specific scope
 export function hasScope(userScopes: string[], required: string): boolean {
-  return userScopes.includes(required);
+  return userScopes.includes('*') || userScopes.includes(required);
 }
 
 // Get scopes for user based on role (for session-based auth)

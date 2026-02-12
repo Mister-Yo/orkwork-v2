@@ -1,4 +1,4 @@
-import { eq, and, count, desc } from 'drizzle-orm';
+import { eq, and, or, count, desc } from 'drizzle-orm';
 import { db, notifications, type NewNotification, type Notification } from '../db';
 import { emitNotificationNew } from './events';
 
@@ -12,7 +12,6 @@ export interface CreateNotificationParams {
   metadata?: Record<string, any>;
 }
 
-// Create a new notification in the database and emit SSE event
 export async function createNotification(params: CreateNotificationParams): Promise<Notification> {
   try {
     console.log(`[Notifications] Creating notification for ${params.recipientType}:${params.recipientId}`);
@@ -33,7 +32,6 @@ export async function createNotification(params: CreateNotificationParams): Prom
       .values(newNotification)
       .returning();
 
-    // Emit real-time event
     emitNotificationNew(notification);
 
     console.log(`[Notifications] Created notification ${notification.id}`);
@@ -44,16 +42,14 @@ export async function createNotification(params: CreateNotificationParams): Prom
   }
 }
 
-// Get unread notification count for a user
-export async function getUnreadCount(userId: string): Promise<number> {
+export async function getUnreadCount(recipientId: string): Promise<number> {
   try {
     const result = await db
       .select({ count: count() })
       .from(notifications)
       .where(
         and(
-          eq(notifications.recipientType, 'user'),
-          eq(notifications.recipientId, userId),
+          eq(notifications.recipientId, recipientId),
           eq(notifications.status, 'pending'),
         )
       );
@@ -65,21 +61,14 @@ export async function getUnreadCount(userId: string): Promise<number> {
   }
 }
 
-// Mark notification as read
-export async function markAsRead(notificationId: string, userId?: string): Promise<Notification | null> {
+export async function markAsRead(notificationId: string, recipientId?: string): Promise<Notification | null> {
   try {
     console.log(`[Notifications] Marking notification ${notificationId} as read`);
 
     const conditions = [eq(notifications.id, notificationId)];
-    
-    // If userId is provided, ensure the user can only mark their own notifications
-    if (userId) {
-      conditions.push(
-        and(
-          eq(notifications.recipientType, 'user'),
-          eq(notifications.recipientId, userId)
-        )
-      );
+
+    if (recipientId) {
+      conditions.push(eq(notifications.recipientId, recipientId));
     }
 
     const [notification] = await db
@@ -104,10 +93,9 @@ export async function markAsRead(notificationId: string, userId?: string): Promi
   }
 }
 
-// Mark all notifications as read for a user
-export async function markAllAsRead(userId: string): Promise<number> {
+export async function markAllAsRead(recipientId: string): Promise<number> {
   try {
-    console.log(`[Notifications] Marking all notifications as read for user ${userId}`);
+    console.log(`[Notifications] Marking all notifications as read for ${recipientId}`);
 
     const result = await db
       .update(notifications)
@@ -117,8 +105,7 @@ export async function markAllAsRead(userId: string): Promise<number> {
       })
       .where(
         and(
-          eq(notifications.recipientType, 'user'),
-          eq(notifications.recipientId, userId),
+          eq(notifications.recipientId, recipientId),
           eq(notifications.status, 'pending')
         )
       )
@@ -132,9 +119,8 @@ export async function markAllAsRead(userId: string): Promise<number> {
   }
 }
 
-// Get notifications for a user (with pagination and filtering)
 export async function getUserNotifications(
-  userId: string,
+  recipientId: string,
   options: {
     status?: 'pending' | 'sent' | 'read' | 'failed';
     channel?: 'web' | 'email' | 'telegram' | 'slack';
@@ -153,8 +139,7 @@ export async function getUserNotifications(
     } = options;
 
     const conditions = [
-      eq(notifications.recipientType, 'user'),
-      eq(notifications.recipientId, userId),
+      eq(notifications.recipientId, recipientId),
     ];
 
     if (status) {
@@ -172,12 +157,12 @@ export async function getUserNotifications(
       .from(notifications)
       .where(and(...conditions))
       .orderBy(desc(notifications.createdAt))
-      .limit(Math.min(limit, 100)) // Cap at 100
+      .limit(Math.min(limit, 100))
       .offset(offset);
 
     return result;
   } catch (error) {
-    console.error('[Notifications] Error getting user notifications:', error);
+    console.error('[Notifications] Error getting notifications:', error);
     throw new Error('Failed to get notifications');
   }
 }

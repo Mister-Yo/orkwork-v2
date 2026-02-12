@@ -53,7 +53,7 @@ export function NotificationCenter() {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const result = await api.notifications.unreadCount()
-      setUnreadCount(result?.count ?? (result as any) ?? 0)
+      setUnreadCount(result?.unreadCount ?? (result as any)?.count ?? 0)
     } catch {
       // Silently fail - notifications are not critical
     }

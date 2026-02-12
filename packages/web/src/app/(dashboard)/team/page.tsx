@@ -1,14 +1,18 @@
 "use client"
 
-import { useState } from "react"
-import useSWR from "swr"
-import { Bot, User, Users, ChevronDown, ChevronRight, Circle } from "lucide-react"
+import { useState, useMemo } from "react"
+import { Bot, User, Users, Circle, Plus, Edit3, UserPlus } from "lucide-react"
 import { api } from "@/lib/api"
 import { useAgents, useTasks } from "@/hooks/use-api"
+import useSWR from "swr"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+// Textarea component not available - using HTML textarea
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 const statusColor: Record<string, string> = {
   active: "bg-emerald-500",
@@ -26,128 +30,519 @@ const roleColors: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300",
 }
 
-function PersonCard({ person, type, currentTask }: { person: any; type: "agent" | "user"; currentTask?: string }) {
-  const name = type === "agent" ? person.name : (person.displayName || person.display_name || person.username)
-  const subtitle = type === "agent" ? person.type : person.role
-  const status = type === "agent" ? person.status : (person.role === "pending" ? "pending" : "active")
-  const dept = person.department || "—"
-  const title = person.title || (type === "agent" ? person.model : "")
+interface OrgNode {
+  id: string
+  name: string
+  type: "user" | "agent"
+  role: string
+  department: string
+  title?: string
+  status: string
+  reports_to?: string
+  system_prompt?: string
+  model?: string
+  avatarUrl?: string
+  currentTask?: string
+  children: OrgNode[]
+}
 
+function OrgNode({ node, level = 0, onNodeClick }: { node: OrgNode; level?: number; onNodeClick: (node: OrgNode) => void }) {
+  const hasChildren = node.children.length > 0
+  
   return (
-    <div className="bg-card border rounded-lg p-3 w-56 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-start gap-3">
-        <div className="relative flex-shrink-0">
-          {type === "agent" ? (
-            <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center">
-              <Bot className="h-4 w-4 text-primary" />
-            </div>
-          ) : person.avatarUrl || person.avatar_url ? (
-            <img src={person.avatarUrl || person.avatar_url} alt="" className="h-9 w-9 rounded-full" />
-          ) : (
-            <div className="h-9 w-9 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-4 w-4 text-muted-foreground" />
-            </div>
-          )}
-          <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card ${statusColor[status] || "bg-gray-300"}`} />
+    <div className="flex flex-col items-center">
+      {/* Node */}
+      <div 
+        className="relative bg-card border rounded-xl p-4 w-64 shadow-sm hover:shadow-lg transition-all cursor-pointer hover:scale-105 z-10"
+        onClick={() => onNodeClick(node)}
+      >
+        <div className="flex items-start gap-3">
+          <div className="relative flex-shrink-0">
+            {node.type === "agent" ? (
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="h-6 w-6 text-primary" />
+              </div>
+            ) : node.avatarUrl ? (
+              <img src={node.avatarUrl} alt="" className="h-12 w-12 rounded-full" />
+            ) : (
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <User className="h-6 w-6 text-muted-foreground" />
+              </div>
+            )}
+            <div className={`absolute -bottom-1 -right-1 h-4 w-4 rounded-full border-2 border-card ${statusColor[node.status] || "bg-gray-300"}`} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h4 className="font-semibold text-sm truncate">{node.name}</h4>
+            <p className="text-xs text-muted-foreground truncate">{node.title || node.role}</p>
+            <p className="text-xs text-muted-foreground">{node.department}</p>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-sm truncate">{name}</p>
-          <p className="text-xs text-muted-foreground truncate">{title || subtitle}</p>
-          {dept !== "—" && <p className="text-xs text-muted-foreground">{dept}</p>}
+        
+        {node.currentTask && (
+          <div className="mt-3 pt-3 border-t">
+            <p className="text-xs text-muted-foreground truncate">
+              <span className="text-emerald-600">●</span> {node.currentTask}
+            </p>
+          </div>
+        )}
+        
+        <div className="mt-3 flex gap-1">
+          <Badge className={`text-[10px] px-1.5 py-0 ${roleColors[node.role] || ""}`} variant="secondary">
+            {node.type === "agent" ? node.model : node.role}
+          </Badge>
+          {node.type === "agent" && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+              {node.status}
+            </Badge>
+          )}
         </div>
       </div>
-      {currentTask && (
-        <div className="mt-2 pt-2 border-t">
-          <p className="text-xs text-muted-foreground truncate">
-            <span className="text-emerald-600">●</span> {currentTask}
-          </p>
+
+      {/* Connecting Lines and Children */}
+      {hasChildren && (
+        <div className="relative">
+          {/* Vertical line down */}
+          <div className="w-px bg-border h-8 mx-auto" />
+          
+          {/* Horizontal line across children */}
+          {node.children.length > 1 && (
+            <div className="relative h-px bg-border" style={{ width: `${(node.children.length - 1) * 280 + 64}px`, left: `${-((node.children.length - 1) * 140)}px` }} />
+          )}
+          
+          {/* Children container */}
+          <div className="flex gap-6 mt-0">
+            {node.children.map((child, index) => (
+              <div key={child.id} className="relative">
+                {/* Vertical line up to child */}
+                {node.children.length > 1 && (
+                  <div className="w-px bg-border h-8 mx-auto -mt-px" />
+                )}
+                <div className={node.children.length === 1 ? "mt-0" : "mt-0"}>
+                  <OrgNode node={child} level={level + 1} onNodeClick={onNodeClick} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
-      <div className="mt-2">
-        <Badge className={`text-[10px] px-1.5 py-0 ${roleColors[subtitle] || ""}`} variant="secondary">
-          {subtitle}
-        </Badge>
-      </div>
     </div>
   )
 }
 
-function OrgTree({ agents, users: usersList, tasks }: { agents: any[]; users: any[]; tasks: any[] }) {
-  // Group by department
-  const departments = new Map<string, { agents: any[]; users: any[] }>()
+function NodeDetailPanel({ 
+  node, 
+  isOpen, 
+  onClose, 
+  agents, 
+  projects, 
+  onUpdateNode,
+  onCreateTask
+}: { 
+  node: OrgNode | null
+  isOpen: boolean
+  onClose: () => void
+  agents: any[]
+  projects: any[]
+  onUpdateNode: (id: string, data: any) => Promise<void>
+  onCreateTask: (data: any) => Promise<void>
+}) {
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [formData, setFormData] = useState<any>({})
+  const [newTask, setNewTask] = useState({ title: "", priority: "medium" })
+  const [assignProject, setAssignProject] = useState("")
+  
+  const { data: tasksData } = useTasks()
+  const tasks = Array.isArray(tasksData) ? tasksData : (tasksData as any)?.tasks || []
+  const nodeTasks = node ? tasks.filter((t: any) => t.assignee_id === node.id || t.assigneeId === node.id) : []
 
-  for (const a of agents) {
-    const dept = a.department || "Unassigned"
-    if (!departments.has(dept)) departments.set(dept, { agents: [], users: [] })
-    departments.get(dept)!.agents.push(a)
-  }
+  if (!node) return null
 
-  for (const u of usersList) {
-    if (u.role === "pending") continue
-    const dept = u.department || "Unassigned"
-    if (!departments.has(dept)) departments.set(dept, { agents: [], users: [] })
-    departments.get(dept)!.users.push(u)
-  }
+  const potentialParents = agents.filter(a => a.id !== node.id && a.type === node.type)
 
-  // Map tasks to agents
-  const agentTasks = new Map<string, string>()
-  for (const t of tasks) {
-    const assigneeId = t.assignee_id || t.assigneeId
-    if (assigneeId && (t.status === "in_progress" || t.status === "assigned")) {
-      if (!agentTasks.has(assigneeId)) {
-        agentTasks.set(assigneeId, t.title)
-      }
+  const handleSaveField = async (field: string) => {
+    try {
+      await onUpdateNode(node.id, { [field]: formData[field] })
+      setEditingField(null)
+    } catch (error) {
+      console.error("Failed to update:", error)
     }
   }
 
-  const sortedDepts = Array.from(departments.entries()).sort(([a], [b]) => {
-    if (a === "Unassigned") return 1
-    if (b === "Unassigned") return -1
-    return a.localeCompare(b)
-  })
-
-  if (sortedDepts.length === 0) {
-    return (
-      <div className="text-center py-12 text-muted-foreground">
-        <Users className="mx-auto mb-3 h-10 w-10 opacity-40" />
-        <p>No team members or agents yet.</p>
-      </div>
-    )
+  const handleCreateTask = async () => {
+    if (!newTask.title.trim()) return
+    try {
+      await onCreateTask({
+        title: newTask.title,
+        priority: newTask.priority,
+        assignee_id: node.id,
+        status: "assigned"
+      })
+      setNewTask({ title: "", priority: "medium" })
+    } catch (error) {
+      console.error("Failed to create task:", error)
+    }
   }
 
   return (
-    <div className="space-y-8">
-      {sortedDepts.map(([dept, members]) => (
-        <div key={dept}>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-primary" />
-            {dept}
-            <span className="text-xs font-normal">({members.users.length + members.agents.length})</span>
-          </h3>
-          <div className="flex flex-wrap gap-3 pl-4 border-l-2 border-muted">
-            {members.users.map((u: any) => (
-              <PersonCard key={u.id} person={u} type="user" />
-            ))}
-            {members.agents.map((a: any) => (
-              <PersonCard key={a.id} person={a} type="agent" currentTask={agentTasks.get(a.id)} />
-            ))}
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="sm:max-w-md overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="flex items-center gap-2">
+            {node.type === "agent" ? (
+              <Bot className="h-5 w-5" />
+            ) : (
+              <User className="h-5 w-5" />
+            )}
+            {node.name}
+          </SheetTitle>
+        </SheetHeader>
+
+        <div className="space-y-6 mt-6">
+          {/* Basic Info */}
+          <div>
+            <h3 className="font-medium text-sm mb-3">Basic Information</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground">Name</label>
+                {editingField === "name" ? (
+                  <div className="flex gap-2 mt-1">
+                    <Input 
+                      value={formData.name || ""} 
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={() => handleSaveField("name")}>Save</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-sm">{node.name}</p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingField("name")
+                        setFormData({...formData, name: node.name})
+                      }}
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground">Department</label>
+                {editingField === "department" ? (
+                  <div className="flex gap-2 mt-1">
+                    <Input 
+                      value={formData.department || ""} 
+                      onChange={(e) => setFormData({...formData, department: e.target.value})}
+                      className="text-sm"
+                    />
+                    <Button size="sm" onClick={() => handleSaveField("department")}>Save</Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-sm">{node.department}</p>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setEditingField("department")
+                        setFormData({...formData, department: node.department})
+                      }}
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground">Status</label>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-2 h-2 rounded-full ${statusColor[node.status] || "bg-gray-300"}`} />
+                  <span className="text-sm capitalize">{node.status}</span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          {/* Reports To (Agents only) */}
+          {node.type === "agent" && (
+            <div>
+              <h3 className="font-medium text-sm mb-3">Reporting Structure</h3>
+              <div>
+                <label className="text-xs text-muted-foreground">Reports To</label>
+                <Select 
+                  value={node.reports_to || ""} 
+                  onValueChange={(value) => onUpdateNode(node.id, { reports_to: value || null })}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Select parent agent" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">No parent</SelectItem>
+                    {potentialParents.map((agent) => (
+                      <SelectItem key={agent.id} value={agent.id}>{agent.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          {/* System Prompt (Agents only) */}
+          {node.type === "agent" && (
+            <div>
+              <h3 className="font-medium text-sm mb-3">Configuration</h3>
+              <div>
+                <label className="text-xs text-muted-foreground">System Prompt</label>
+                {editingField === "system_prompt" ? (
+                  <div className="space-y-2 mt-1">
+                    <textarea
+                      value={formData.system_prompt || ""} 
+                      onChange={(e) => setFormData({...formData, system_prompt: e.target.value})}
+                      className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleSaveField("system_prompt")}>Save</Button>
+                      <Button size="sm" variant="outline" onClick={() => setEditingField(null)}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-1">
+                    <div className="flex items-start justify-between">
+                      <p className="text-sm text-muted-foreground bg-muted p-2 rounded text-xs">
+                        {node.system_prompt || "No system prompt set"}
+                      </p>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        className="ml-2"
+                        onClick={() => {
+                          setEditingField("system_prompt")
+                          setFormData({...formData, system_prompt: node.system_prompt || ""})
+                        }}
+                      >
+                        <Edit3 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Assign to Project */}
+          <div>
+            <h3 className="font-medium text-sm mb-3">Project Assignment</h3>
+            <div className="flex gap-2">
+              <Select value={assignProject} onValueChange={setAssignProject}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select project" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button 
+                size="sm" 
+                disabled={!assignProject}
+                onClick={() => {
+                  // This would need project assignment API
+                  console.log("Assign to project:", assignProject)
+                  setAssignProject("")
+                }}
+              >
+                Assign
+              </Button>
+            </div>
+          </div>
+
+          {/* Add Task */}
+          <div>
+            <h3 className="font-medium text-sm mb-3">Add Task</h3>
+            <div className="space-y-3">
+              <Input 
+                placeholder="Task title"
+                value={newTask.title}
+                onChange={(e) => setNewTask({...newTask, title: e.target.value})}
+              />
+              <Select value={newTask.priority} onValueChange={(value) => setNewTask({...newTask, priority: value})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low Priority</SelectItem>
+                  <SelectItem value="medium">Medium Priority</SelectItem>
+                  <SelectItem value="high">High Priority</SelectItem>
+                  <SelectItem value="urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button 
+                onClick={handleCreateTask} 
+                disabled={!newTask.title.trim()}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Task
+              </Button>
+            </div>
+          </div>
+
+          {/* Current Tasks */}
+          {nodeTasks.length > 0 && (
+            <div>
+              <h3 className="font-medium text-sm mb-3">Current Tasks ({nodeTasks.length})</h3>
+              <div className="space-y-2">
+                {nodeTasks.slice(0, 5).map((task: any) => (
+                  <div key={task.id} className="flex items-center justify-between text-sm p-2 bg-muted rounded">
+                    <span className="truncate">{task.title}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {task.status}
+                    </Badge>
+                  </div>
+                ))}
+                {nodeTasks.length > 5 && (
+                  <p className="text-xs text-muted-foreground">+{nodeTasks.length - 5} more tasks</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      ))}
-    </div>
+      </SheetContent>
+    </Sheet>
   )
 }
 
 export default function TeamPage() {
-  const { data: agentsData, isLoading: agentsLoading } = useAgents()
+  const { data: agentsData, isLoading: agentsLoading, mutate: mutateAgents } = useAgents()
   const { data: usersData, isLoading: usersLoading } = useSWR("/v2/users-team", () => api.users.list())
-  const { data: tasksData, isLoading: tasksLoading } = useTasks()
+  const { data: tasksData, isLoading: tasksLoading, mutate: mutateTasks } = useTasks()
+  const { data: projectsData, isLoading: projectsLoading } = useSWR("/v2/projects", () => api.projects.list())
+  
+  const [selectedNode, setSelectedNode] = useState<OrgNode | null>(null)
+  const [isPanelOpen, setIsPanelOpen] = useState(false)
 
   const agents = (agentsData as any)?.agents || (Array.isArray(agentsData) ? agentsData : [])
   const usersList = (usersData as any)?.users || (Array.isArray(usersData) ? usersData : [])
   const tasks = (tasksData as any)?.tasks || (Array.isArray(tasksData) ? tasksData : [])
+  const projects = (projectsData as any)?.projects || (Array.isArray(projectsData) ? projectsData : [])
 
   const isLoading = agentsLoading || usersLoading
+
+  // Build org tree
+  const orgTree = useMemo(() => {
+    if (isLoading) return null
+
+    // Map tasks to agents/users
+    const taskMap = new Map<string, string>()
+    tasks.forEach((task: any) => {
+      const assigneeId = task.assignee_id || task.assigneeId
+      if (assigneeId && (task.status === "in_progress" || task.status === "assigned")) {
+        if (!taskMap.has(assigneeId)) {
+          taskMap.set(assigneeId, task.title)
+        }
+      }
+    })
+
+    // Create nodes
+    const nodeMap = new Map<string, OrgNode>()
+    
+    // Add CEO user
+    const ceo = usersList.find((u: any) => u.id === "09670672-bfeb-455c-9e32-ab6aaea194ef")
+    if (ceo) {
+      nodeMap.set(ceo.id, {
+        id: ceo.id,
+        name: ceo.display_name || ceo.displayName || ceo.username,
+        type: "user",
+        role: ceo.role,
+        department: ceo.department || "Executive",
+        title: ceo.title,
+        status: "active",
+        avatarUrl: ceo.avatar_url || ceo.avatarUrl,
+        children: []
+      })
+    }
+
+    // Add all agents
+    agents.forEach((agent: any) => {
+      nodeMap.set(agent.id, {
+        id: agent.id,
+        name: agent.name,
+        type: "agent",
+        role: agent.type,
+        department: agent.department || "AI",
+        title: agent.model,
+        status: agent.status,
+        reports_to: agent.reports_to,
+        system_prompt: agent.system_prompt,
+        model: agent.model,
+        currentTask: taskMap.get(agent.id),
+        children: []
+      })
+    })
+
+    // Build hierarchy
+    const roots: OrgNode[] = []
+    
+    nodeMap.forEach((node) => {
+      if (node.type === "user" || !node.reports_to) {
+        roots.push(node)
+      } else {
+        const parent = nodeMap.get(node.reports_to)
+        if (parent) {
+          parent.children.push(node)
+        } else {
+          roots.push(node)
+        }
+      }
+    })
+
+    // Sort children by department then name
+    const sortNodes = (nodes: OrgNode[]) => {
+      nodes.sort((a, b) => {
+        if (a.department !== b.department) {
+          return a.department.localeCompare(b.department)
+        }
+        return a.name.localeCompare(b.name)
+      })
+      nodes.forEach(node => sortNodes(node.children))
+    }
+    
+    sortNodes(roots)
+    roots.forEach(root => sortNodes(root.children))
+
+    return roots
+  }, [agents, usersList, tasks, isLoading])
+
+  const handleNodeClick = (node: OrgNode) => {
+    setSelectedNode(node)
+    setIsPanelOpen(true)
+  }
+
+  const handleUpdateNode = async (id: string, data: any) => {
+    try {
+      await api.agents.update(id, data)
+      await mutateAgents()
+    } catch (error) {
+      console.error("Failed to update node:", error)
+      throw error
+    }
+  }
+
+  const handleCreateTask = async (data: any) => {
+    try {
+      await api.tasks.create(data)
+      await mutateTasks()
+    } catch (error) {
+      console.error("Failed to create task:", error)
+      throw error
+    }
+  }
 
   if (isLoading) {
     return (
@@ -161,14 +556,13 @@ export default function TeamPage() {
   }
 
   const activeAgents = agents.filter((a: any) => a.status === "active").length
-  const idleAgents = agents.filter((a: any) => a.status === "idle").length
   const pendingUsers = usersList.filter((u: any) => u.role === "pending").length
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Team</h1>
-        <p className="text-muted-foreground">Your organization structure — humans and AI agents.</p>
+        <p className="text-muted-foreground">Interactive organization chart — humans and AI agents.</p>
       </div>
 
       {/* Stats */}
@@ -199,15 +593,42 @@ export default function TeamPage() {
         </Card>
       </div>
 
-      {/* Org Chart */}
+      {/* Organization Chart */}
       <Card>
         <CardHeader>
-          <CardTitle>Organization Chart</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Organization Chart
+          </CardTitle>
         </CardHeader>
-        <CardContent>
-          <OrgTree agents={agents} users={usersList} tasks={tasks} />
+        <CardContent className="p-6">
+          {!orgTree || orgTree.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Users className="mx-auto mb-3 h-10 w-10 opacity-40" />
+              <p>No team members or agents yet.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto pb-4">
+              <div className="flex flex-col items-center gap-8 min-w-max p-4">
+                {orgTree.map((root) => (
+                  <OrgNode key={root.id} node={root} onNodeClick={handleNodeClick} />
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Side Panel */}
+      <NodeDetailPanel
+        node={selectedNode}
+        isOpen={isPanelOpen}
+        onClose={() => setIsPanelOpen(false)}
+        agents={agents}
+        projects={projects}
+        onUpdateNode={handleUpdateNode}
+        onCreateTask={handleCreateTask}
+      />
     </div>
   )
 }

@@ -171,9 +171,9 @@ export const api = {
       const qs = q.toString();
       return apiFetch<any[]>("/v2/notifications" + (qs ? "?" + qs : ""));
     },
-    unreadCount: () => apiFetch<{ count: number }>("/v2/notifications/unread-count"),
-    markRead: (id: string) => apiFetch<any>("/v2/notifications/" + id + "/read", { method: "POST" }),
-    markAllRead: () => apiFetch<any>("/v2/notifications/read-all", { method: "POST" }),
+    unreadCount: () => apiFetch<{ unreadCount: number }>("/v2/notifications/unread-count"),
+    markRead: (id: string) => apiFetch<any>("/v2/notifications/" + id + "/read", { method: "PATCH" }),
+    markAllRead: () => apiFetch<any>("/v2/notifications/read-all", { method: "PATCH" }),
   },
 
   audit: {

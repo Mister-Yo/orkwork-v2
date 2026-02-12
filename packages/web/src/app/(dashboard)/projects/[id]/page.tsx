@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, FolderKanban, Calendar, DollarSign, AlertTriangle, CheckSquare, Activity, User, Crown } from "lucide-react"
+import { ArrowLeft, FolderKanban, Calendar, DollarSign, AlertTriangle, CheckSquare, Activity, User, Crown, ExternalLink } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -86,6 +86,10 @@ export default function ProjectDetailPage() {
   const ownerAvatar = p.ownerAvatar || p.owner_avatar || null
   const createdByName = p.createdByName || p.created_by_name || null
   const createdByAvatar = p.createdByAvatar || p.created_by_avatar || null
+  const githubUrl = p.githubUrl || p.github_url || null
+  const skillsUrl = p.skillsUrl || p.skills_url || null
+  const strategyUrl = p.strategyUrl || p.strategy_url || null
+  const promptUrl = p.promptUrl || p.prompt_url || null
 
   return (
     <div className="space-y-6">
@@ -130,6 +134,36 @@ export default function ProjectDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Links */}
+      {(githubUrl || skillsUrl || strategyUrl || promptUrl) && (
+        <div className="flex items-center gap-4 flex-wrap">
+          {githubUrl && (
+            <a href={githubUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              🔗 GitHub
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          {skillsUrl && (
+            <a href={skillsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              📚 Skills
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          {strategyUrl && (
+            <a href={strategyUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              🎯 Strategy
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+          {promptUrl && (
+            <a href={promptUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              📝 Prompt
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

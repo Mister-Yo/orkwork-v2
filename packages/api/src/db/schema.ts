@@ -100,6 +100,10 @@ export const projects = pgTable('projects', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   ownerId: uuid('owner_id').references(() => users.id, { onDelete: 'set null' }),
+  githubUrl: text('github_url'),
+  skillsUrl: text('skills_url'),
+  strategyUrl: text('strategy_url'),
+  promptUrl: text('prompt_url'),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
   nameIdx: index('projects_name_idx').on(table.name),

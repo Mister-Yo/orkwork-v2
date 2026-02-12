@@ -16,6 +16,10 @@ const createProjectSchema = z.object({
   deadline: z.string().datetime().optional(),
   healthScore: z.number().int().min(0).max(100).optional(),
   riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional().default('low'),
+  githubUrl: z.string().url().optional(),
+  skillsUrl: z.string().url().optional(),
+  strategyUrl: z.string().url().optional(),
+  promptUrl: z.string().url().optional(),
 });
 
 const updateProjectSchema = z.object({
@@ -29,6 +33,10 @@ const updateProjectSchema = z.object({
   healthScore: z.number().int().min(0).max(100).optional(),
   riskLevel: z.enum(['low', 'medium', 'high', 'critical']).optional(),
   ownerId: z.string().uuid().nullable().optional(),
+  githubUrl: z.string().url().nullable().optional(),
+  skillsUrl: z.string().url().nullable().optional(),
+  strategyUrl: z.string().url().nullable().optional(),
+  promptUrl: z.string().url().nullable().optional(),
 });
 
 // GET /api/v2/projects
@@ -71,6 +79,10 @@ app.get('/', requireAuth, async (c) => {
           updatedAt: projects.updatedAt,
           createdBy: projects.createdBy,
           ownerId: projects.ownerId,
+          githubUrl: projects.githubUrl,
+          skillsUrl: projects.skillsUrl,
+          strategyUrl: projects.strategyUrl,
+          promptUrl: projects.promptUrl,
           taskCount: count(tasks.id).as('taskCount'),
           ownerName: sql<string>`(SELECT username FROM users WHERE id = ${projects.ownerId})`.as('ownerName'),
           createdByName: sql<string>`(SELECT username FROM users WHERE id = ${projects.createdBy})`.as('createdByName'),
@@ -152,6 +164,14 @@ app.get('/:id', requireAuth, async (c) => {
         updatedAt: projects.updatedAt,
         createdBy: projects.createdBy,
         ownerId: projects.ownerId,
+        githubUrl: projects.githubUrl,
+        skillsUrl: projects.skillsUrl,
+        strategyUrl: projects.strategyUrl,
+        promptUrl: projects.promptUrl,
+          githubUrl: projects.githubUrl,
+          skillsUrl: projects.skillsUrl,
+          strategyUrl: projects.strategyUrl,
+          promptUrl: projects.promptUrl,
         taskCount: count(tasks.id).as('taskCount'),
         ownerName: sql<string>`(SELECT username FROM users WHERE id = ${projects.ownerId})`.as('ownerName'),
         ownerAvatar: sql<string>`(SELECT avatar_url FROM users WHERE id = ${projects.ownerId})`.as('ownerAvatar'),

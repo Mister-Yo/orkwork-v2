@@ -165,6 +165,13 @@ app.post('/', requireRole('member'), async (c) => {
     const body = await c.req.json();
     const validatedData = createTaskSchema.parse(body);
 
+    // Determine assignee type (user or agent)
+    let assigneeType = 'agent';
+    if (validatedData.assigneeId) {
+      const [userCheck] = await db.select({ id: users.id }).from(users).where(eq(users.id, validatedData.assigneeId)).limit(1);
+      if (userCheck) assigneeType = 'user';
+    }
+
     const newTask: NewTask = {
       ...validatedData,
       dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : undefined,
@@ -172,7 +179,10 @@ app.post('/', requireRole('member'), async (c) => {
       retryCount: 0,
     };
 
-    const [createdTask] = await db.insert(tasks).values(newTask).returning();
+    const [createdTask] = await db.insert(tasks).values({
+      ...newTask,
+      assigneeType,
+    } as any).returning();
 
     // Emit task created event
     emitTaskCreated(createdTask);

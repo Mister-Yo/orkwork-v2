@@ -48,7 +48,7 @@ export function CreateTaskDialog() {
         projectId: projectId || undefined,
         priority,
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
-        dueDate: dueDate || undefined,
+        dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         reviewRequired: reviewRequired,
         assigneeId: assigneeId || undefined,
       })

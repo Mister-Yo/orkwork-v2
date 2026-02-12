@@ -128,7 +128,7 @@ export default function DashboardPage() {
       <div className="space-y-1">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome to your AI Company OS command center
+          Overview of agents, tasks, and project health
         </p>
       </div>
 

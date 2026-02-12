@@ -16,6 +16,7 @@ import {
   Users,
   Settings,
   X,
+  Gamepad2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -30,6 +31,7 @@ const navigation = [
     href: "/dashboard",
     icon: LayoutDashboard,
   },
+  {    name: "Game View",    href: "/game",    icon: Gamepad2,  },
   {
     name: "Agents",
     href: "/agents",

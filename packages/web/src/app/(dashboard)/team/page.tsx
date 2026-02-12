@@ -119,7 +119,7 @@ function TreeNode({ node, onSelect, selectedId, isRoot }: {
       {/* The card */}
       <button
         onClick={() => onSelect(node)}
-        className={`relative bg-card border-2 rounded-xl px-4 py-3 w-48 shadow-sm hover:shadow-lg transition-all cursor-pointer text-left
+        className={`relative bg-card border-2 rounded-xl px-3 py-2 w-44 shadow-sm hover:shadow-lg transition-all cursor-pointer text-left
           ${isSelected ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"}
           ${isRoot ? "bg-gradient-to-b from-emerald-500/10 to-transparent border-emerald-500/50" : ""}`}
       >
@@ -157,7 +157,7 @@ function TreeNode({ node, onSelect, selectedId, isRoot }: {
       {hasChildren && (
         <>
           {/* Vertical line down from parent */}
-          <div className="w-px h-6 bg-border" />
+          <div className="w-px h-4 bg-border" />
 
           {/* Horizontal bar + children */}
           <div className="relative flex">
@@ -172,11 +172,11 @@ function TreeNode({ node, onSelect, selectedId, isRoot }: {
             )}
 
             {/* Child nodes */}
-            <div className="flex gap-4">
+            <div className="flex gap-3">
               {node.children.map((child) => (
                 <div key={child.id} className="flex flex-col items-center">
                   {/* Vertical line from horizontal bar to child */}
-                  <div className="w-px h-6 bg-border" />
+                  <div className="w-px h-4 bg-border" />
                   <TreeNode node={child} onSelect={onSelect} selectedId={selectedId} />
                 </div>
               ))}

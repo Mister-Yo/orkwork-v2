@@ -129,6 +129,40 @@ export function DailyBrief() {
           <StatRow icon={Calendar} label="System Health" value={`${systemHealth}%`} />
         </div>
 
+        {/* AI Summary */}
+        {b.ai_summary && (
+          <div className="rounded-lg border bg-gradient-to-r from-violet-50 to-blue-50 dark:from-violet-950/30 dark:to-blue-950/30 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-semibold">AI Insight</span>
+              <Badge variant="outline" className="text-xs">Claude</Badge>
+            </div>
+            <p className="text-sm leading-relaxed">{b.ai_summary}</p>
+            {b.ai_highlights && b.ai_highlights.length > 0 && (
+              <div className="mt-3 space-y-1">
+                {b.ai_highlights.map((h: string, i: number) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <CheckCircle className="h-3.5 w-3.5 mt-0.5 text-emerald-500 shrink-0" />
+                    <span className="text-xs">{h}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {b.ai_action_items && b.ai_action_items.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <span className="text-xs font-semibold text-muted-foreground">Action Items</span>
+                <div className="mt-1 space-y-1">
+                  {b.ai_action_items.map((a: string, i: number) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-xs font-bold text-orange-500 shrink-0">{i+1}.</span>
+                      <span className="text-xs">{a}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-3">
           {/* Recent Events */}
           <div className="space-y-2">

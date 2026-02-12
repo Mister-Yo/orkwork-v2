@@ -6,6 +6,7 @@ import { requireAuth } from '../auth/middleware';
 import { requireScope } from '../auth/scopes';
 import { calculateAgentScore } from '../engine/performance';
 import { generateBrief } from '../engine/brief';
+import { generateAIBrief } from '../engine/ai-brief';
 import { detectAnomalies } from '../engine/anomalies';
 import { projectForecast, costForecast, bottleneckDetection } from '../engine/forecast';
 
@@ -27,7 +28,7 @@ const costForecastSchema = z.object({
 // GET /api/v2/intelligence/brief - Generate and return daily brief
 app.get('/brief', requireAuth, async (c) => {
   try {
-    const brief = await generateBrief();
+    const brief = await generateAIBrief();
     
     return c.json({
       data: brief,

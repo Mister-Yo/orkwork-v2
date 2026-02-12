@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { eq, sql, and, desc, count, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { db, tasks, taskDependencies, taskExecutions, users, projects, notifications, auditLog, type Task, type NewTask, type NewTaskDependency, type NewNotification, type NewAuditLog } from '../db';
+import { db, tasks, taskDependencies, taskExecutions, users, projects, notifications, auditLog, agents, type Task, type NewTask, type NewTaskDependency, type NewNotification, type NewAuditLog } from '../db';
 import { requireAuth, requireRole, getAuthUser } from '../auth/middleware';
 import { autoAssignTask } from '../engine/assigner';
 import { checkDependentTasks } from '../engine/workflow';
@@ -124,7 +124,8 @@ app.get('/', requireAuth, async (c) => {
           maxRetries: tasks.maxRetries,
           createdAt: tasks.createdAt,
           updatedAt: tasks.updatedAt,
-          assigneeName: users.displayName,
+          assigneeName: sql`COALESCE(${users.displayName}, (SELECT name FROM agents WHERE id = ${tasks.assigneeId}))`.as('assigneeName'),
+          assigneeType: sql`assignee_type`.as('assigneeType'),
         })
         .from(tasks)
         .leftJoin(users, eq(tasks.assigneeId, users.id))
